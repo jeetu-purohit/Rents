@@ -1,0 +1,28 @@
+{
+  "name": "rents-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"cd apps/frontend && bun run dev\" \"cd apps/backend && bun run dev\"",
+    "build:shared": "bun --filter shared run build",
+    "anchor:build": "anchor build",
+    "anchor:deploy": "anchor deploy",
+    "anchor:test": "anchor test"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "chai": "^6.2.2",
+    "concurrently": "^8.2.2",
+    "mocha": "^11.7.6",
+    "ts-mocha": "^11.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "5.5.4"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1"
+  }
+}
