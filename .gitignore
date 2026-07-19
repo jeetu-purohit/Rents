@@ -4,3 +4,5 @@ target/
 test-ledger/
 .env
 dist/
+journal.md
+design/
