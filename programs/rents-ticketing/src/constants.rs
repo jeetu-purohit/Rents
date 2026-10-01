@@ -1,10 +1,11 @@
 pub const EVENT_SEED: &[u8] = b"event";
 pub const TICKET_SEED: &[u8] = b"ticket";
+pub const AUTHORITY_SEED: &[u8] = b"authority";
 pub const PLATFORM_CONFIG_SEED: &[u8] = b"platform_config";
 
-pub const DEFAULT_RESALE_CAP_PERCENT: u16 = 110;
-pub const DEFAULT_ROYALTY_PERCENT: u16 = 5;
-
-pub const PLATFORM_MINT_FEE_PERCENT: u64 = 5;//fee charged to buyer on top of the base_value 
-
-pub const PLATFORM_ROYALTY_CUT_PRECENT: u64 = 10;//cut the platform takes from the organizers royalty for resell.
+pub const BPS_DENOMINATOR: u16 = 10_000;
+pub const DEFAULT_RESALE_CAP_BPS: u16 = 11_000;
+pub const DEFAULT_ROYALTY_BPS: u16 = 500;
+pub const DEFAULT_PLATFORM_FEE_BPS: u16 = 100;
+pub const MAX_PLATFORM_FEE_BPS: u16 = 500;
+pub const MAX_ROYALTY_BPS: u16 = 2_000;

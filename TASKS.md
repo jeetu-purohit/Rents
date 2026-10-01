@@ -32,17 +32,17 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 
 ## Phase 1: Program state and event creation *(Opus 4.6)*
 
-### 1.1 `TODO`: Platform config instructions (with fee)
+### 1.1 `DONE`: Platform config instructions (with fee)
 - **Do:** Review `initialize_platform_config.rs` / `update_platform_wallet.rs` against SPEC §5.1. Add `platform_fee_bps` to the PlatformConfig state and to `initialize_platform_config`; add `update_platform_fee.rs` (admin only, max 500 bps → `InvalidFee`). Register all in `instructions.rs` / `lib.rs`. Don't wire the fee into mint/resell yet (that is Tasks 2.1/2.4).
 - **Tests:** init succeeds with fee 100; init with fee 501 fails `InvalidFee`; double-init fails; non-admin `update_platform_wallet` and `update_platform_fee` fail `NotAdmin`; admin updates succeed and are readable.
 - **Done when:** these tests pass under `anchor test`.
-
-### 1.2 `TODO`: State, errors, constants
+- 
+### 1.2 `DONE`: State, errors, constants
 - **Do:** Align `state.rs`, `error.rs`, `constants.rs` with SPEC §5.1 and §5.3 (Event, Ticket structs with `InitSpace`; all error variants; seed constants; bps constants).
 - **Done when:** `anchor build` is green; no unused-field warnings left unexplained.
 - **Depends on:** 0.2
 
-### 1.3 `TODO`: `initialize_event`
+### 1.3 `DONE`: `initialize_event`
 - **Do:** Implement / fix per SPEC §5.2.1 with validation (`resale_cap_bps >= 10000`, `royalty_bps <= 2000`, `max_tickets > 0`).
 - **Tests (in `tests/rents-ticketing.ts`):** valid event created and fields stored; defaults honoured when 11000/500 passed; invalid bps rejected (`InvalidBps`); zero tickets rejected; same organizer+event_id twice fails.
 - **Done when:** all pass.
