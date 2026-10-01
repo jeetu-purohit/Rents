@@ -20,4 +20,22 @@ pub enum RentsError {
     InvalidFee,
     #[msg("Provided seller is not the current owner of this ticket.")]
     NotTicketOwner,
+    #[msg("Invalid basis-point value.")]
+    InvalidBps,
+    #[msg("Price must be greater than zero.")]
+    InvalidPrice,
+    #[msg("Ticket is not listed for resale.")]
+    NotListed,
+    #[msg("Ticket has already been used.")]
+    TicketAlreadyUsed,
+    #[msg("Signer is not the current ticket holder.")]
+    NotTicketHolder,
+    #[msg("Signer is not the event organizer.")]
+    NotEventOrganizer,
+    #[msg("Ticket cannot be purchased by its current owner.")]
+    SelfPurchase,
+    #[msg("Arithmetic overflow while computing values.")]
+    MathOverflow,
+    #[msg("Ticket does not belong to the specified event.")]
+    WrongEvent,
 }
