@@ -23,7 +23,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Done when:** `anchor build` succeeds on the current code (or the failures are listed), `docker compose up -d` brings up Mongo, and §4 has no `TBD`.
 - **Depends on:** 0.1
 
-### 0.3 `TODO`: Configure Metaplex on the local test validator
+### 0.3 `DONE`: Configure Metaplex on the local test validator
 - **Do:** Make `anchor test` start a validator with the Metaplex Token Metadata program available (via `[test.validator]` `[[test.genesis]]` using a dumped `.so`, or `[[test.validator.clone]]` from devnet; pick whichever works and document it).
 - **Done when:** a trivial test can read the Metaplex program account (`getAccountInfo` is executable).
 - **Depends on:** 0.2

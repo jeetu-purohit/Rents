@@ -6,3 +6,4 @@ test-ledger/
 dist/
 journal.md
 design/
+.metaplex/
