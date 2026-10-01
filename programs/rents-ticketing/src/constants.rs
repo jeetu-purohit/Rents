@@ -1,10 +1,10 @@
-use anchor_lang::prelude::*;
+pub const EVENT_SEED: &[u8] = b"event";
+pub const TICKET_SEED: &[u8] = b"ticket";
+pub const PLATFORM_CONFIG_SEED: &[u8] = b"platform_config";
 
-#[constant]
-pub const COUNTER_SEED: &[u8] = b"counter";
+pub const DEFAULT_RESALE_CAP_PERCENT: u16 = 110;
+pub const DEFAULT_ROYALTY_PERCENT: u16 = 5;
 
-#[constant]
-pub const HELLO_WORLD_LAMPORTS: u64 = 1;
+pub const PLATFORM_MINT_FEE_PERCENT: u64 = 5;//fee charged to buyer on top of the base_value 
 
-#[constant]
-pub const MAX_COUNT: u64 = 10;
+pub const PLATFORM_ROYALTY_CUT_PRECENT: u64 = 10;//cut the platform takes from the organizers royalty for resell.
