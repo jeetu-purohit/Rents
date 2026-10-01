@@ -11,13 +11,13 @@ pub struct UpdatePlatformWallet<'info> {
   #[account(
     mut,
     seeds = [PLATFORM_CONFIG_SEED],
-    bump = platfrom_config.bump,
+    bump = platform_config.bump,
     has_one = authority @ RentsError::Unauthorized
   )]
-  pub pltform_config: Account<'info, PlatformConfig>
+  pub platform_config: Account<'info, PlatformConfig>
 }
 
-pub fn handler(cts:Context<UpdatePlatformWallet>,new_platform_wallet) -> Result<()>{
-  cts.accounts.pltform_config.platform_wallet = new_platform_wallet;
+pub fn handler(ctx: Context<UpdatePlatformWallet>, new_platform_wallet: Pubkey) -> Result<()>{
+  ctx.accounts.platform_config.platform_wallet = new_platform_wallet;
   Ok(())
 }

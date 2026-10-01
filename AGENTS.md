@@ -63,10 +63,10 @@ journal.md                       running log of work done
 
 Filled in by Task 0.2 (the agent records real values; the human verifies):
 
-- OS / shell: `TBD`
-- Rust: `TBD`  ·  Solana CLI: `TBD`  ·  Anchor CLI: `TBD`
-- anchor-lang: `TBD`  ·  anchor-spl: `TBD`  ·  mpl-token-metadata: `TBD`
-- Bun: `TBD`  ·  Node: `TBD`
+- OS / shell: `linux / bash`
+- Rust: `1.98.1`  ·  Solana CLI: `4.2.2`  ·  Anchor CLI: `1.1.2`
+- anchor-lang: `1.1.2`  ·  anchor-spl: `1.1.2`  ·  mpl-token-metadata: `5.1.1`
+- Bun: `1.3.13`  ·  Node: `v24.15.0`
 - Package manager: Bun (`bun install`, `bun run`)
 
 ## 5. Commands (confirm in Task 0.2; correct this list if reality differs)

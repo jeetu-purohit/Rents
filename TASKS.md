@@ -18,7 +18,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Output:** a table appended to `journal.md`. Pay special attention to `initialize_platform_config.rs`, `update_platform_wallet.rs` and `state.rs` (what do they actually do vs SPEC §5.1? D3 is resolved: platform fee + future forfeited stakes), and the `%` vs `bps` fields in the Mongo models.
 - **Done when:** the report exists. **Update the statuses below based on the findings** (e.g. flip `VERIFY` to `DONE` or `TODO`).
 
-### 0.2 `TODO`: Toolchain and commands check
+### 0.2 `DONE`: Toolchain and commands check
 - **Do:** Run and record versions: `rustc -V`, `solana -V`, `anchor -V`, `bun -v`, `node -v`, `docker -v`. Read `Cargo.toml` for anchor-lang / anchor-spl / mpl-token-metadata versions. Try each command in `AGENTS.md` §5 and correct the table where reality differs. Fill in `AGENTS.md` §4.
 - **Done when:** `anchor build` succeeds on the current code (or the failures are listed), `docker compose up -d` brings up Mongo, and §4 has no `TBD`.
 - **Depends on:** 0.1

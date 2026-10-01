@@ -40,10 +40,10 @@ pub mod rents_ticketing {
   }
 
   pub fn update_platform_wallet (
-    ctx: Context<Update_platform_wallet>,
+    ctx: Context<UpdatePlatformWallet>,
     new_platform_wallet: Pubkey,
   ) -> Result<()> {
-    instructios::update_platform_wallet::handler(ctx , new_platform_wallet)
+    instructions::update_platform_wallet::handler(ctx , new_platform_wallet)
   }
 
   //finished writing till here 

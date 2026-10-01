@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { Ticket } from "../models/Ticket.model";
 
 export async function verifyTicket(req: Request, res: Response, next: NextFunction) {
