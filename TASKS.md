@@ -42,7 +42,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Done when:** `anchor build` is green; no unused-field warnings left unexplained.
 - **Depends on:** 0.2
 
-### 1.3 `TODO`: `initialize_event`
+### 1.3 `DONE`: `initialize_event`
 - **Do:** Implement / fix per SPEC §5.2.1 with validation (`resale_cap_bps >= 10000`, `royalty_bps <= 2000`, `max_tickets > 0`).
 - **Tests (in `tests/rents-ticketing.ts`):** valid event created and fields stored; defaults honoured when 11000/500 passed; invalid bps rejected (`InvalidBps`); zero tickets rejected; same organizer+event_id twice fails.
 - **Done when:** all pass.

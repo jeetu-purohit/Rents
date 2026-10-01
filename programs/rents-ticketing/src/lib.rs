@@ -17,17 +17,19 @@ pub mod rents_ticketing {
     //organizer setup the event using this function call , they set the max tickets , base price , resale cap % and royalty % they want on every resale.
     pub fn initialize_event(
         ctx: Context<InitializeEvent>,
+        event_id: u64,
         max_tickets: u32,
-        base_price_lamports: u64,
-        resale_cap_percent: u16,
-        royalty_percent: u16,
+        base_price: u64,
+        resale_cap_bps: u16,
+        royalty_bps: u16,
     ) -> Result<()> {
         instructions::initialize_event::handler(
             ctx,
+            event_id,
             max_tickets,
-            base_price_lamports,
-            resale_cap_percent,
-            royalty_percent,
+            base_price,
+            resale_cap_bps,
+            royalty_bps,
         )
     }
 

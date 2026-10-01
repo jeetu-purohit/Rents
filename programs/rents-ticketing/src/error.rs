@@ -38,4 +38,6 @@ pub enum RentsError {
     MathOverflow,
     #[msg("Ticket does not belong to the specified event.")]
     WrongEvent,
+    #[msg("Maximum ticket count must be greater than zero.")]
+    InvalidMaxTickets,
 }
