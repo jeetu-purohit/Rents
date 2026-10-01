@@ -24,4 +24,86 @@ describe("rents-ticketing", () => {
   it("initializes an event", async () => {
     assert.ok(program.programId);
   });
+
+  it("initializes and updates the platform config with an admin fee", async () => {
+    const admin = provider.wallet.publicKey;
+    const platformWallet = anchor.web3.Keypair.generate().publicKey;
+    const updatedPlatformWallet = anchor.web3.Keypair.generate().publicKey;
+    const nonAdmin = anchor.web3.Keypair.generate();
+    const [platformConfig] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("platform_config")],
+      program.programId
+    );
+    const expectError = async (action: Promise<unknown>, expectedCode: string) => {
+      try {
+        await action;
+        assert.fail(`Expected ${expectedCode} error`);
+      } catch (error) {
+        assert.include(String(error), expectedCode);
+      }
+    };
+
+    await expectError(
+      program.methods
+        .initializePlatformConfig(platformWallet, 501)
+        .accounts({ admin, platformConfig })
+        .rpc(),
+      "InvalidFee"
+    );
+
+    await program.methods
+      .initializePlatformConfig(platformWallet, 100)
+      .accounts({ admin, platformConfig })
+      .rpc();
+
+    const initialConfig = await program.account.platformConfig.fetch(platformConfig);
+    assert.equal(initialConfig.platformFeeBps, 100);
+    assert.equal(initialConfig.platformWallet.toBase58(), platformWallet.toBase58());
+
+    await expectError(
+      program.methods
+        .initializePlatformConfig(platformWallet, 100)
+        .accounts({ admin, platformConfig })
+        .rpc(),
+      "already in use"
+    );
+
+    await expectError(
+      program.methods
+        .updatePlatformWallet(updatedPlatformWallet)
+        .accounts({ admin: nonAdmin.publicKey, platformConfig })
+        .signers([nonAdmin])
+        .rpc(),
+      "NotAdmin"
+    );
+    await expectError(
+      program.methods
+        .updatePlatformFee(200)
+        .accounts({ admin: nonAdmin.publicKey, platformConfig })
+        .signers([nonAdmin])
+        .rpc(),
+      "NotAdmin"
+    );
+    await expectError(
+      program.methods
+        .updatePlatformFee(501)
+        .accounts({ admin, platformConfig })
+        .rpc(),
+      "InvalidFee"
+    );
+
+    await program.methods
+      .updatePlatformWallet(updatedPlatformWallet)
+      .accounts({ admin, platformConfig })
+      .rpc();
+    await program.methods
+      .updatePlatformFee(200)
+      .accounts({ admin, platformConfig })
+      .rpc();
+
+    const config = await program.account.platformConfig.fetch(platformConfig);
+    assert.equal(config.admin.toBase58(), admin.toBase58());
+    assert.equal(config.platformWallet.toBase58(), updatedPlatformWallet.toBase58());
+    assert.equal(config.platformFeeBps, 200);
+  });
 });

@@ -32,7 +32,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 
 ## Phase 1: Program state and event creation *(Opus 4.6)*
 
-### 1.1 `TODO`: Platform config instructions (with fee)
+### 1.1 `DONE`: Platform config instructions (with fee)
 - **Do:** Review `initialize_platform_config.rs` / `update_platform_wallet.rs` against SPEC §5.1. Add `platform_fee_bps` to the PlatformConfig state and to `initialize_platform_config`; add `update_platform_fee.rs` (admin only, max 500 bps → `InvalidFee`). Register all in `instructions.rs` / `lib.rs`. Don't wire the fee into mint/resell yet (that is Tasks 2.1/2.4).
 - **Tests:** init succeeds with fee 100; init with fee 501 fails `InvalidFee`; double-init fails; non-admin `update_platform_wallet` and `update_platform_fee` fail `NotAdmin`; admin updates succeed and are readable.
 - **Done when:** these tests pass under `anchor test`.
