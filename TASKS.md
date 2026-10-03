@@ -149,10 +149,11 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Depends on:** 3.6
 - **Verified:** backend typecheck, shared build, and `git diff --check` passed; full local lifecycle smoke verified valid live owner, used/wrong-Event/spoofed-owner/chain-missing rejections despite cache contents, stale cached owner ignored, and unreachable-RPC cache fallback accepted; backend health returned `{"status":"ok"}`.
 
-### 3.9 `TODO`: `GET /api/platform`
+### 3.9 `DONE`: `GET /api/platform`
 - **Do:** Read PlatformConfig from chain and return `{ platformFeeBps, platformWallet }` (short in-memory cache OK). The frontend uses it to show the fee as a separate line before purchase.
 - **Done when:** the endpoint returns the on-chain values after a fee update.
 - **Depends on:** 3.2
+- **Verified:** `bunx tsc --noEmit -p apps/backend`, `bun run --cwd packages/shared build`, and `git diff --check` passed; full local API/validator lifecycle smoke matched `/api/platform` to the chain before and after an admin fee update, confirmed the wallet stayed the same, and restored the original fee; backend health returned `{"status":"ok"}`.
 
 ---
 

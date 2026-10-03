@@ -228,6 +228,41 @@ if (!existingPlatformConfig) {
   await submit(setupTransaction, setupBlockhash.lastValidBlockHeight, platformAdmin);
 }
 
+const getPlatform = async (): Promise<{ platformFeeBps: number; platformWallet: string }> => {
+  const payload = objectRecord(await getJson("/api/platform"), "platform config response");
+  assert(typeof payload.platformFeeBps === "number", "platform endpoint omitted platformFeeBps");
+  assert(typeof payload.platformWallet === "string", "platform endpoint omitted platformWallet");
+  return { platformFeeBps: payload.platformFeeBps, platformWallet: payload.platformWallet };
+};
+
+const originalPlatformConfig = await program.account.platformConfig.fetch(platformConfigPda);
+const firstPlatformResponse = await getPlatform();
+assert(firstPlatformResponse.platformFeeBps === originalPlatformConfig.platformFeeBps, "platform endpoint fee did not match chain state");
+assert(firstPlatformResponse.platformWallet === originalPlatformConfig.platformWallet.toBase58(), "platform endpoint wallet did not match chain state");
+assert(originalPlatformConfig.admin.equals(platformAdmin.publicKey), "platform smoke requires its generated admin keypair; run against a fresh local validator");
+const updatedPlatformFee = originalPlatformConfig.platformFeeBps === 101 ? 102 : 101;
+const submitPlatformFeeUpdate = async (feeBps: number): Promise<void> => {
+  const instruction = await program.methods
+    .updatePlatformFee(feeBps)
+    .accountsStrict({ admin: platformAdmin.publicKey, platformConfig: platformConfigPda })
+    .instruction();
+  const latest = await connection.getLatestBlockhash("confirmed");
+  const transaction = new Transaction({
+    feePayer: platformAdmin.publicKey,
+    recentBlockhash: latest.blockhash,
+  }).add(instruction);
+  await submit(transaction, latest.lastValidBlockHeight, platformAdmin);
+};
+await submitPlatformFeeUpdate(updatedPlatformFee);
+const updatedPlatformConfig = await program.account.platformConfig.fetch(platformConfigPda);
+assert(updatedPlatformConfig.platformFeeBps === updatedPlatformFee, "admin platform fee update was not confirmed on chain");
+const updatedPlatformResponse = await getPlatform();
+assert(updatedPlatformResponse.platformFeeBps === updatedPlatformFee, "platform endpoint did not return the updated on-chain fee");
+assert(updatedPlatformResponse.platformWallet === originalPlatformConfig.platformWallet.toBase58(), "platform wallet changed during fee update");
+await submitPlatformFeeUpdate(originalPlatformConfig.platformFeeBps);
+const restoredPlatformConfig = await program.account.platformConfig.fetch(platformConfigPda);
+assert(restoredPlatformConfig.platformFeeBps === originalPlatformConfig.platformFeeBps, "platform smoke did not restore the original fee");
+
 const eventId = Date.now().toString();
 const initializeResponse = await postTransaction("/api/tx/initialize-event", {
   organizerPubkey: organizer.publicKey.toBase58(),
@@ -560,6 +595,7 @@ console.log(
     listings: "GET listings included the ticket while listed and excluded it after resale",
     metadata: "GET metadata returned Metaplex-compatible JSON from the matching Event and authoritative Ticket number; invalid mint, unknown mint, and missing Event returned 400/404",
     checkInVerify: "chain accepted the live holder; rejected used, wrong-Event, spoofed-owner, and chain-missing tickets despite stale Mongo; unreachable-RPC fallback accepted the valid cached Ticket",
+    platform: `GET matched on-chain fee ${originalPlatformConfig.platformFeeBps} and wallet before/after admin update; updated fee ${updatedPlatformFee} observed and original restored`,
     eventPda: eventPda.toBase58(),
     ticketPda: ticketPda.toBase58(),
     userTransactionsUnsignedBeforeClientSigning: true,
