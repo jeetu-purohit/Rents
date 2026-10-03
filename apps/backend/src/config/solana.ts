@@ -1,6 +1,7 @@
 import { Program, type Idl, type Provider } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";
 import sharedIdlJson from "shared/idl/rents_ticketing.json";
+import type { RentsTicketing } from "shared";
 
 function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
@@ -19,4 +20,4 @@ export const connection = new Connection(rpcUrl, "confirmed");
 const configuredIdl: Idl = { ...(sharedIdlJson as Idl), address: programId.toBase58() };
 const readOnlyProvider: Provider = { connection };
 
-export const program = new Program(configuredIdl, readOnlyProvider);
+export const program = new Program<RentsTicketing>(configuredIdl, readOnlyProvider);

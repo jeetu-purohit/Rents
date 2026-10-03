@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-  buildMintTransaction,
   buildResellTransaction,
   getTicketsByOwner,
   getTicketsByEvent,
@@ -15,7 +14,6 @@ router.get("/event/:eventId", getTicketsByEvent);  // GET /api/tickets/event/:ev
 router.get("/:mint", getTicketByMint);             // GET /api/tickets/:mint
 
 // Write (returns an UNSIGNED tx for the frontend to sign via Phantom)
-router.post("/mint", buildMintTransaction);        // POST /api/tickets/mint
 router.post("/resell", buildResellTransaction);    // POST /api/tickets/resell
 
 export default router;

@@ -29,17 +29,6 @@ export async function getTicketByMint(req: Request, res: Response, next: NextFun
   }
 }
 
-export async function buildMintTransaction(req: Request, res: Response, next: NextFunction) {
-  try {
-    // TODO (solanaTx.service.ts): build the mint_ticket instruction using
-    // Anchor program + Metaplex CPI accounts, return a base64 unsigned tx
-    // for the frontend to sign with Phantom and submit.
-    res.status(501).json({ message: "buildMintTransaction not implemented yet" });
-  } catch (err) {
-    next(err);
-  }
-}
-
 export async function buildResellTransaction(req: Request, res: Response, next: NextFunction) {
   try {
     // TODO (solanaTx.service.ts): build the resell_ticket instruction,

@@ -4,6 +4,7 @@ import { connectDB } from "./config/db";
 import eventRoutes from "./routes/events.routes.ts";
 import ticketRoutes from "./routes/ticket.routes";
 import checkinRoutes from "./routes/checkin.routes";
+import txRoutes from "./routes/tx.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -17,6 +18,7 @@ app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/events", eventRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/checkin", checkinRoutes);
+app.use("/api/tx", txRoutes);
 
 app.use(errorHandler);
 

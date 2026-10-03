@@ -119,10 +119,11 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Done when:** both apps typecheck while importing a shared type.
 - **Verified:** shared package build passed; backend and frontend typechecks passed with workspace imports; backend Devnet smoke passed using the IDL package export.
 
-### 3.4 `TODO`: `solanaTx.service.ts`: `initialize-event` and `mint` builders
+### 3.4 `DONE`: `solanaTx.service.ts`: `initialize-event` and `mint` builders
 - **Do:** Build base64 **unsigned** txs with the correct accounts (derive PDAs, include PlatformConfig and the platform wallet). For `mint`, the client generates the fresh mint keypair and sends its public key to the backend; the backend uses that public key when constructing the transaction, and the frontend/script adds the mint-keypair signature plus the user's wallet signature before submission. The backend must never sign the transaction. Routes `POST /api/tx/initialize-event`, `/api/tx/mint`.
 - **Done when:** a script takes the returned unsigned tx, signs it with the test wallet(s) plus the fresh mint keypair where required, sends to localnet/devnet, and confirms; the ticket exists on-chain.
 - **Depends on:** 3.2
+- **Verified:** local integration smoke called both API routes, signed only in the client script, confirmed both transactions, and verified Event fields plus Ticket PDA, mint supply 1, and buyer token ownership; backend typecheck, shared build, and `git diff --check` passed.
 
 ### 3.5 `TODO`: Builders for `list`, `cancel-listing`, `resell`, `check-in`
 - **Do:** Same pattern as 3.4. Replace the old 501 stubs and route names.
