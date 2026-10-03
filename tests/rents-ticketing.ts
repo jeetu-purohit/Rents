@@ -156,6 +156,86 @@ describe("rents-ticketing", () => {
     assert.isTrue(thrown, `Expected ${expectedCode} error`);
   };
 
+  const setProgramAccountData = async (
+    address: anchor.web3.PublicKey,
+    owner: anchor.web3.PublicKey,
+    data: Buffer
+  ): Promise<void> => {
+    const accountInfo = await provider.connection.getAccountInfo(address);
+    assert.isNotNull(accountInfo);
+    const response = await fetch(provider.connection.rpcEndpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "surfnet_setAccount",
+        params: [
+          address.toBase58(),
+          {
+            data: data.toString("hex"),
+            executable: false,
+            lamports: accountInfo!.lamports,
+            owner: owner.toBase58(),
+            rentEpoch: accountInfo!.rentEpoch,
+          },
+        ],
+      }),
+    });
+    const result = (await response.json()) as { error?: { message: string } };
+    assert.isUndefined(result.error, result.error?.message);
+  };
+
+  const createResaleFixture = async (eventIdNumber: number) => {
+    const organizer = anchor.web3.Keypair.generate();
+    const seller = anchor.web3.Keypair.generate();
+    const eventId = new anchor.BN(eventIdNumber);
+    const faceValue = new anchor.BN(anchor.web3.LAMPORTS_PER_SOL);
+    const [event] = eventPda(organizer.publicKey, eventId);
+    for (const [keypair, lamports] of [
+      [organizer, 2 * anchor.web3.LAMPORTS_PER_SOL],
+      [seller, 3 * anchor.web3.LAMPORTS_PER_SOL],
+    ] as const) {
+      const signature = await provider.connection.requestAirdrop(keypair.publicKey, lamports);
+      await provider.connection.confirmTransaction(signature, "confirmed");
+    }
+    await program.methods
+      .initializeEvent(eventId, 10, faceValue, 11_000, 500)
+      .accounts({
+        organizer: organizer.publicKey,
+        event,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([organizer])
+      .rpc();
+
+    const mint = anchor.web3.Keypair.generate();
+    const [ticket] = ticketPda(mint.publicKey);
+    const sellerTokenAccount = associatedTokenAddress(seller.publicKey, mint.publicKey);
+    await program.methods
+      .mintTicket(`Resale Event ${eventIdNumber}`, `https://example.test/resale/${eventIdNumber}.json`)
+      .accounts({
+        buyer: seller.publicKey,
+        event,
+        organizer: organizer.publicKey,
+        platformConfig: platformConfigPda(),
+        platformWallet,
+        ticketAuthority: ticketAuthorityPda(),
+        mint: mint.publicKey,
+        ticket,
+        buyerTokenAccount: sellerTokenAccount,
+        metadata: metadataPda(mint.publicKey),
+        tokenMetadataProgram: METAPLEX_TOKEN_METADATA_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([seller, mint])
+      .rpc();
+
+    return { organizer, seller, event, ticket, mint, sellerTokenAccount, faceValue };
+  };
+
   it("loads the Metaplex Token Metadata program and it is executable", async () => {
     const accountInfo = await provider.connection.getAccountInfo(
       METAPLEX_TOKEN_METADATA_PROGRAM_ID
@@ -839,6 +919,370 @@ describe("rents-ticketing", () => {
         .rpc(),
       "TicketAlreadyUsed"
     );
+  });
+
+  it("resells at the cap, keeps the buyer locked, and supports a rounded two-hop resale", async () => {
+    const fixture = await createResaleFixture(31);
+    const buyer = anchor.web3.Keypair.generate();
+    const nextBuyer = anchor.web3.Keypair.generate();
+    for (const keypair of [buyer, nextBuyer]) {
+      const signature = await provider.connection.requestAirdrop(
+        keypair.publicKey,
+        3 * anchor.web3.LAMPORTS_PER_SOL
+      );
+      await provider.connection.confirmTransaction(signature, "confirmed");
+    }
+
+    const buyerTokenAccount = associatedTokenAddress(buyer.publicKey, fixture.mint.publicKey);
+    const nextBuyerTokenAccount = associatedTokenAddress(nextBuyer.publicKey, fixture.mint.publicKey);
+    await provider.sendAndConfirm(
+      new anchor.web3.Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          buyer.publicKey,
+          fixture.mint.publicKey,
+          buyerTokenAccount
+        ),
+        createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          nextBuyer.publicKey,
+          fixture.mint.publicKey,
+          nextBuyerTokenAccount
+        )
+      ),
+      []
+    );
+    const resaleAccounts = (
+      currentSeller: anchor.web3.Keypair,
+      currentSellerTokenAccount: anchor.web3.PublicKey,
+      currentBuyer: anchor.web3.Keypair,
+      currentBuyerTokenAccount: anchor.web3.PublicKey
+    ) => ({
+      buyer: currentBuyer.publicKey,
+      event: fixture.event,
+      ticket: fixture.ticket,
+      organizer: fixture.organizer.publicKey,
+      seller: currentSeller.publicKey,
+      platformConfig: platformConfigPda(),
+      platformWallet,
+      ticketAuthority: ticketAuthorityPda(),
+      mint: fixture.mint.publicKey,
+      sellerTokenAccount: currentSellerTokenAccount,
+      buyerTokenAccount: currentBuyerTokenAccount,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    });
+
+    const capPrice = new anchor.BN(1_100_000_000);
+    await program.methods
+      .listTicket(capPrice)
+      .accounts({
+        holder: fixture.seller.publicKey,
+        event: fixture.event,
+        ticket: fixture.ticket,
+        tokenAccount: fixture.sellerTokenAccount,
+      })
+      .signers([fixture.seller])
+      .rpc();
+
+    const buyerBefore = await provider.connection.getBalance(buyer.publicKey);
+    const organizerBefore = await provider.connection.getBalance(fixture.organizer.publicKey);
+    const sellerBefore = await provider.connection.getBalance(fixture.seller.publicKey);
+    const platformBefore = await provider.connection.getBalance(platformWallet);
+    await program.methods
+      .resellTicket()
+      .accounts(resaleAccounts(fixture.seller, fixture.sellerTokenAccount, buyer, buyerTokenAccount))
+      .signers([buyer])
+      .rpc();
+
+    assert.equal(buyerBefore - (await provider.connection.getBalance(buyer.publicKey)), 1_111_000_000);
+    assert.equal(
+      (await provider.connection.getBalance(fixture.organizer.publicKey)) - organizerBefore,
+      55_000_000,
+      "organizer receives 0.055 SOL royalty"
+    );
+    assert.equal(
+      (await provider.connection.getBalance(fixture.seller.publicKey)) - sellerBefore,
+      1_045_000_000,
+      "seller receives 1.045 SOL"
+    );
+    assert.equal(
+      (await provider.connection.getBalance(platformWallet)) - platformBefore,
+      11_000_000,
+      "platform receives 0.011 SOL"
+    );
+    let ticketState = await program.account.ticket.fetch(fixture.ticket);
+    assert.isNull(ticketState.listingPrice);
+    assert.equal(ticketState.resaleCount, 1);
+    const buyerTokenInfo = await provider.connection.getAccountInfo(buyerTokenAccount);
+    const sellerTokenInfo = await provider.connection.getAccountInfo(fixture.sellerTokenAccount);
+    assert.isNotNull(buyerTokenInfo);
+    assert.isNotNull(sellerTokenInfo);
+    assert.equal(buyerTokenInfo!.data.readBigUInt64LE(64), 1n);
+    assert.equal(buyerTokenInfo!.data[108], 2, "new owner token account is frozen");
+    assert.equal(buyerTokenInfo!.data.readUInt32LE(72), 1, "TicketAuthority remains delegate");
+    assert.equal(
+      new anchor.web3.PublicKey(buyerTokenInfo!.data.subarray(76, 108)).toBase58(),
+      ticketAuthorityPda().toBase58()
+    );
+    assert.equal(buyerTokenInfo!.data.readBigUInt64LE(121), 1n);
+    assert.equal(
+      new anchor.web3.PublicKey(buyerTokenInfo!.data.subarray(32, 64)).toBase58(),
+      buyer.publicKey.toBase58()
+    );
+    const mintInfoAfterResale = await provider.connection.getAccountInfo(fixture.mint.publicKey);
+    assert.isNotNull(mintInfoAfterResale);
+    assert.equal(mintInfoAfterResale!.data.readUInt32LE(0), 0, "mint authority stays revoked");
+    assert.equal(mintInfoAfterResale!.data.readUInt32LE(46), 1);
+    assert.equal(
+      new anchor.web3.PublicKey(mintInfoAfterResale!.data.subarray(50, 82)).toBase58(),
+      ticketAuthorityPda().toBase58()
+    );
+    assert.equal(sellerTokenInfo!.data.readBigUInt64LE(64), 0n);
+    assert.equal(sellerTokenInfo!.data[108], 1, "old owner token account is thawed");
+    assert.equal(sellerTokenInfo!.data.readBigUInt64LE(121), 0n);
+
+    const thirdParty = anchor.web3.Keypair.generate();
+    const thirdPartyTokenAccount = associatedTokenAddress(
+      thirdParty.publicKey,
+      fixture.mint.publicKey
+    );
+    await provider.sendAndConfirm(
+      new anchor.web3.Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          thirdParty.publicKey,
+          fixture.mint.publicKey,
+          thirdPartyTokenAccount
+        )
+      ),
+      []
+    );
+    const transferByBuyer = splInstruction(
+      3,
+      [
+        { pubkey: buyerTokenAccount, isSigner: false, isWritable: true },
+        { pubkey: thirdPartyTokenAccount, isSigner: false, isWritable: true },
+        { pubkey: buyer.publicKey, isSigner: true, isWritable: false },
+      ],
+      1n
+    );
+    await expectTransactionFailure(
+      new anchor.web3.Transaction().add(transferByBuyer),
+      [buyer]
+    );
+
+    await provider.sendAndConfirm(
+      new anchor.web3.Transaction().add(
+        splInstruction(9, [
+          { pubkey: fixture.sellerTokenAccount, isSigner: false, isWritable: true },
+          { pubkey: fixture.seller.publicKey, isSigner: false, isWritable: true },
+          { pubkey: fixture.seller.publicKey, isSigner: true, isWritable: false },
+        ])
+      ),
+      [fixture.seller]
+    );
+    assert.isNull(await provider.connection.getAccountInfo(fixture.sellerTokenAccount));
+
+    const lowerPrice = new anchor.BN(900_000_003);
+    await program.methods
+      .listTicket(lowerPrice)
+      .accounts({
+        holder: buyer.publicKey,
+        event: fixture.event,
+        ticket: fixture.ticket,
+        tokenAccount: buyerTokenAccount,
+      })
+      .signers([buyer])
+      .rpc();
+    const nextBuyerBefore = await provider.connection.getBalance(nextBuyer.publicKey);
+    const organizerBeforeSecondSale = await provider.connection.getBalance(
+      fixture.organizer.publicKey
+    );
+    const buyerBeforeSecondSale = await provider.connection.getBalance(buyer.publicKey);
+    const platformBeforeSecondSale = await provider.connection.getBalance(platformWallet);
+    await program.methods
+      .resellTicket()
+      .accounts(resaleAccounts(buyer, buyerTokenAccount, nextBuyer, nextBuyerTokenAccount))
+      .signers([nextBuyer])
+      .rpc();
+
+    const royalty = 45_000_000;
+    const sellerProceeds = 855_000_003;
+    const fee = 9_000_000;
+    assert.equal(nextBuyerBefore - (await provider.connection.getBalance(nextBuyer.publicKey)), 909_000_003);
+    assert.equal(
+      (await provider.connection.getBalance(fixture.organizer.publicKey)) - organizerBeforeSecondSale,
+      royalty
+    );
+    assert.equal(
+      (await provider.connection.getBalance(buyer.publicKey)) - buyerBeforeSecondSale,
+      sellerProceeds
+    );
+    assert.equal(
+      (await provider.connection.getBalance(platformWallet)) - platformBeforeSecondSale,
+      fee
+    );
+    assert.equal(royalty + sellerProceeds, lowerPrice.toNumber());
+    assert.equal(lowerPrice.toNumber() * 500 % 10_000, 1_500);
+    assert.equal(lowerPrice.toNumber() * 100 % 10_000, 300);
+
+    ticketState = await program.account.ticket.fetch(fixture.ticket);
+    assert.isNull(ticketState.listingPrice);
+    assert.equal(ticketState.resaleCount, 2);
+    const nextBuyerTokenInfo = await provider.connection.getAccountInfo(nextBuyerTokenAccount);
+    const secondSellerTokenInfo = await provider.connection.getAccountInfo(buyerTokenAccount);
+    assert.isNotNull(nextBuyerTokenInfo);
+    assert.isNotNull(secondSellerTokenInfo);
+    assert.equal(nextBuyerTokenInfo!.data.readBigUInt64LE(64), 1n);
+    assert.equal(nextBuyerTokenInfo!.data[108], 2);
+    assert.equal(
+      new anchor.web3.PublicKey(nextBuyerTokenInfo!.data.subarray(32, 64)).toBase58(),
+      nextBuyer.publicKey.toBase58()
+    );
+    assert.equal(secondSellerTokenInfo!.data.readBigUInt64LE(64), 0n);
+    assert.equal(secondSellerTokenInfo!.data[108], 1);
+  });
+
+  it("rejects invalid resale state, rechecks the cap, and rolls back an underfunded purchase", async () => {
+    const fixture = await createResaleFixture(32);
+    const buyer = anchor.web3.Keypair.generate();
+    const buyerFunding = await provider.connection.requestAirdrop(
+      buyer.publicKey,
+      2 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(buyerFunding, "confirmed");
+    const buyerTokenAccount = associatedTokenAddress(buyer.publicKey, fixture.mint.publicKey);
+    const accountsFor = (currentBuyer: anchor.web3.Keypair) => ({
+      buyer: currentBuyer.publicKey,
+      event: fixture.event,
+      ticket: fixture.ticket,
+      organizer: fixture.organizer.publicKey,
+      seller: fixture.seller.publicKey,
+      platformConfig: platformConfigPda(),
+      platformWallet,
+      ticketAuthority: ticketAuthorityPda(),
+      mint: fixture.mint.publicKey,
+      sellerTokenAccount: fixture.sellerTokenAccount,
+      buyerTokenAccount: associatedTokenAddress(currentBuyer.publicKey, fixture.mint.publicKey),
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    });
+    const validPrice = new anchor.BN(1_000_000_000);
+    await expectProgramError(
+      program.methods
+        .resellTicket()
+        .accounts(accountsFor(buyer))
+        .signers([buyer])
+        .rpc(),
+      "NotListed"
+    );
+    await expectProgramError(
+      program.methods
+        .listTicket(new anchor.BN(1_100_000_001))
+        .accounts({
+          holder: fixture.seller.publicKey,
+          event: fixture.event,
+          ticket: fixture.ticket,
+          tokenAccount: fixture.sellerTokenAccount,
+        })
+        .signers([fixture.seller])
+        .rpc(),
+      "PriceExceedsCap"
+    );
+    await program.methods
+      .listTicket(validPrice)
+      .accounts({
+        holder: fixture.seller.publicKey,
+        event: fixture.event,
+        ticket: fixture.ticket,
+        tokenAccount: fixture.sellerTokenAccount,
+      })
+      .signers([fixture.seller])
+      .rpc();
+
+    await expectProgramError(
+      program.methods
+        .resellTicket()
+        .accounts({ ...accountsFor(fixture.seller), buyerTokenAccount: fixture.sellerTokenAccount })
+        .signers([fixture.seller])
+        .rpc(),
+      "SelfPurchase"
+    );
+
+    const capExceededTicketData = Buffer.from(
+      (await provider.connection.getAccountInfo(fixture.ticket))!.data
+    );
+    capExceededTicketData[93] = 1;
+    capExceededTicketData.writeBigUInt64LE(1_100_000_001n, 94);
+    await setProgramAccountData(fixture.ticket, program.programId, capExceededTicketData);
+    await expectProgramError(
+      program.methods
+        .resellTicket()
+        .accounts(accountsFor(buyer))
+        .signers([buyer])
+        .rpc(),
+      "PriceExceedsCap"
+    );
+
+    await program.methods
+      .listTicket(validPrice)
+      .accounts({
+        holder: fixture.seller.publicKey,
+        event: fixture.event,
+        ticket: fixture.ticket,
+        tokenAccount: fixture.sellerTokenAccount,
+      })
+      .signers([fixture.seller])
+      .rpc();
+    const usedTicketData = Buffer.from(
+      (await provider.connection.getAccountInfo(fixture.ticket))!.data
+    );
+    usedTicketData[84] = 1;
+    await setProgramAccountData(fixture.ticket, program.programId, usedTicketData);
+    await expectProgramError(
+      program.methods
+        .resellTicket()
+        .accounts(accountsFor(buyer))
+        .signers([buyer])
+        .rpc(),
+      "TicketAlreadyUsed"
+    );
+
+    usedTicketData[84] = 0;
+    await setProgramAccountData(fixture.ticket, program.programId, usedTicketData);
+    const poorBuyer = anchor.web3.Keypair.generate();
+    const poorBuyerFunding = await provider.connection.requestAirdrop(poorBuyer.publicKey, 50_000_000);
+    await provider.connection.confirmTransaction(poorBuyerFunding, "confirmed");
+    const organizerBefore = await provider.connection.getBalance(fixture.organizer.publicKey);
+    const sellerBefore = await provider.connection.getBalance(fixture.seller.publicKey);
+    const platformBefore = await provider.connection.getBalance(platformWallet);
+    const poorBuyerBefore = await provider.connection.getBalance(poorBuyer.publicKey);
+    let failed = false;
+    try {
+      await program.methods
+        .resellTicket()
+        .accounts(accountsFor(poorBuyer))
+        .signers([poorBuyer])
+        .rpc();
+    } catch {
+      failed = true;
+    }
+    assert.isTrue(failed, "underfunded resale must fail");
+    assert.equal(await provider.connection.getBalance(fixture.organizer.publicKey), organizerBefore);
+    assert.equal(await provider.connection.getBalance(fixture.seller.publicKey), sellerBefore);
+    assert.equal(await provider.connection.getBalance(platformWallet), platformBefore);
+    assert.equal(await provider.connection.getBalance(poorBuyer.publicKey), poorBuyerBefore);
+    const ticketState = await program.account.ticket.fetch(fixture.ticket);
+    assert.isTrue(ticketState.listingPrice.eq(validPrice));
+    assert.equal(ticketState.resaleCount, 0);
+    assert.isNull(await provider.connection.getAccountInfo(associatedTokenAddress(poorBuyer.publicKey, fixture.mint.publicKey)));
+    const sellerTokenInfo = await provider.connection.getAccountInfo(fixture.sellerTokenAccount);
+    assert.isNotNull(sellerTokenInfo);
+    assert.equal(sellerTokenInfo!.data.readBigUInt64LE(64), 1n);
+    assert.equal(sellerTokenInfo!.data[108], 2);
   });
 
   it("rejects a mint beyond event capacity without changing state or payments", async () => {

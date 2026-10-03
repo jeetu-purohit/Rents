@@ -70,7 +70,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Tests:** list at ≤ cap works; list at exactly cap works; list at cap+1 lamport fails `PriceExceedsCap`; price 0 fails `InvalidPrice`; non-holder fails `NotTicketHolder`; used ticket cannot be listed; relisting updates the price; cancel clears the listing; cancel by a non-holder fails.
 - **Depends on:** 2.2
 
-### 2.4 `TODO`: `resell_ticket`: cap, royalty, platform fee, locked transfer
+### 2.4 `DONE`: `resell_ticket`: cap, royalty, platform fee, locked transfer
 - **Do:** Implement per SPEC §5.2.5 with all arithmetic via `u128` + `checked_*`. Thaw → transfer via delegate → buyer approves delegate → freeze buyer.
 - **Tests (the paper-critical set):**
   - face 1 SOL, cap 110%, royalty 5%, fee 1%, listing at 1.10 SOL → buyer pays exactly 1.111; organizer gets exactly 0.055; seller gets exactly 1.045; platform wallet gets exactly 0.011; NFT owned by the buyer

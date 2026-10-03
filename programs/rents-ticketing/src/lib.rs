@@ -69,8 +69,8 @@ pub mod rents_ticketing {
     }
 
     //transfer ticket to new buyer and enforces a price cap , and split the royalty with the organizer and to my fat wallet.
-    pub fn resell_ticket(ctx: Context<ResellTicket>, sale_price_lamports: u64) -> Result<()> {
-        Ok(())
+    pub fn resell_ticket(ctx: Context<ResellTicket>) -> Result<()> {
+        instructions::resell_ticket::handler(ctx)
     }
 
     //this function is called when a person does a qr checkin , checks if the ticket is present on the blockchain and check if it is already scanned or not.
