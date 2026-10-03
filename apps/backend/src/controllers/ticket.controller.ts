@@ -12,7 +12,7 @@ export async function getTicketsByOwner(req: Request, res: Response, next: NextF
 
 export async function getTicketsByEvent(req: Request, res: Response, next: NextFunction) {
   try {
-    const tickets = await Ticket.find({ eventOnChainId: req.params.eventId });
+    const tickets = await Ticket.find({ eventPda: req.params.eventId });
     res.json(tickets);
   } catch (err) {
     next(err);

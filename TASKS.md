@@ -103,9 +103,10 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 
 ## Phase 3: Backend foundation *(Sonnet 4.6)*
 
-### 3.1 `TODO`: Models migrated to SPEC
+### 3.1 `DONE`: Models migrated to SPEC
 - **Do:** Update `Event`, `Ticket`, `User` models to SPEC §6.1 (bps fields, `eventPda`, `ticketPda`, listing fields). Update controllers that referenced old field names.
 - **Done when:** `bunx tsc --noEmit` clean; backend boots and connects to Mongo; a quick script/cURL creates and reads an Event.
+- **Verified:** `bunx tsc --noEmit -p apps/backend`; backend connected to Mongo and started on port 4000; local create/read smoke test returned 201/200 with bps fields and no legacy percentage fields.
 
 ### 3.2 `TODO`: `config/solana.ts`
 - **Do:** Connection from env (`SOLANA_RPC_URL`), program ID from env, Anchor `Program` instance from the IDL in `packages/shared`. Add `.env.example`.
