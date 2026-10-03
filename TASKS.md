@@ -131,10 +131,11 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Depends on:** 3.4
 - **Verified:** backend typecheck and shared build passed; local API-to-validator smoke completed initialize → mint → list → cancel-listing → relist → resell → check-in, verified buyer ownership, listing cleared, resale count 1, frozen buyer ATA, and duplicate check-in rejected with `TicketAlreadyUsed` (6012); `git diff --check` passed.
 
-### 3.6 `TODO`: Indexer (polling)
+### 3.6 `DONE`: Indexer (polling)
 - **Do:** `indexer.service.ts`: on an interval, `program.account.ticket.all()` + event accounts → upsert Mongo. Add `syncTicket(mint)` and `POST /api/tickets/:mint/sync`. Start the indexer from `index.ts` behind an env flag. Add `GET /api/tickets/listings`.
 - **Done when:** after the 3.5 script, Mongo reflects the correct owner, listing, and `isCheckedIn` without manual edits.
 - **Depends on:** 3.5
+- **Verified:** `bunx tsc --noEmit -p apps/backend`, shared build, and `git diff --check` passed; backend started with indexing disabled and enabled; API/local-validator/Mongo smoke confirmed polling and explicit sync cache fields, owner and check-in state, repeated-poll deduplication, sync 400/404 behavior without fake rows, and listings reflected list/resale state.
 
 ### 3.7 `TODO`: Metadata endpoint
 - **Do:** `GET /api/metadata/:mint` returns Metaplex-standard JSON (name, symbol, description, image, attributes: event, venue, date, ticket #). `metadata.service.ts` builds it from Event + Ticket.

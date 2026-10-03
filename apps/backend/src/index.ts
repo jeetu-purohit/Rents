@@ -6,6 +6,7 @@ import ticketRoutes from "./routes/ticket.routes";
 import checkinRoutes from "./routes/checkin.routes";
 import txRoutes from "./routes/tx.routes";
 import { errorHandler } from "./middleware/errorHandler";
+import { startIndexer } from "./services/indexer.service";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -26,6 +27,7 @@ async function start() {
   await connectDB();
   app.listen(PORT, () => {
     console.log(`[server] RENTS backend running on port ${PORT}`);
+    if (process.env.INDEXER_ENABLED?.trim().toLowerCase() === "true") startIndexer();
   });
 }
 
