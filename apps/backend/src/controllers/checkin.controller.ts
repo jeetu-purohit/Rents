@@ -16,13 +16,3 @@ export async function verifyTicket(req: Request, res: Response, next: NextFuncti
     next(err);
   }
 }
-
-export async function buildCheckInTransaction(req: Request, res: Response, next: NextFunction) {
-  try {
-    // TODO (solanaTx.service.ts): build the check_in_ticket instruction,
-    // return a base64 unsigned tx for the gate/organizer wallet to sign.
-    res.status(501).json({ message: "buildCheckInTransaction not implemented yet" });
-  } catch (err) {
-    next(err);
-  }
-}

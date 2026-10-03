@@ -125,10 +125,11 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Depends on:** 3.2
 - **Verified:** local integration smoke called both API routes, signed only in the client script, confirmed both transactions, and verified Event fields plus Ticket PDA, mint supply 1, and buyer token ownership; backend typecheck, shared build, and `git diff --check` passed.
 
-### 3.5 `TODO`: Builders for `list`, `cancel-listing`, `resell`, `check-in`
+### 3.5 `DONE`: Builders for `list`, `cancel-listing`, `resell`, `check-in`
 - **Do:** Same pattern as 3.4. Replace the old 501 stubs and route names.
 - **Done when:** an end-to-end script (separate keypairs for organizer / seller / buyer) runs create → mint → list → resell → check-in through the API builders and succeeds.
 - **Depends on:** 3.4
+- **Verified:** backend typecheck and shared build passed; local API-to-validator smoke completed initialize → mint → list → cancel-listing → relist → resell → check-in, verified buyer ownership, listing cleared, resale count 1, frozen buyer ATA, and duplicate check-in rejected with `TicketAlreadyUsed` (6012); `git diff --check` passed.
 
 ### 3.6 `TODO`: Indexer (polling)
 - **Do:** `indexer.service.ts`: on an interval, `program.account.ticket.all()` + event accounts → upsert Mongo. Add `syncTicket(mint)` and `POST /api/tickets/:mint/sync`. Start the indexer from `index.ts` behind an env flag. Add `GET /api/tickets/listings`.

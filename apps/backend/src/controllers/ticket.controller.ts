@@ -28,14 +28,3 @@ export async function getTicketByMint(req: Request, res: Response, next: NextFun
     next(err);
   }
 }
-
-export async function buildResellTransaction(req: Request, res: Response, next: NextFunction) {
-  try {
-    // TODO (solanaTx.service.ts): build the resell_ticket instruction,
-    // enforcing price cap client-side too (chain is the real enforcer),
-    // return a base64 unsigned tx.
-    res.status(501).json({ message: "buildResellTransaction not implemented yet" });
-  } catch (err) {
-    next(err);
-  }
-}

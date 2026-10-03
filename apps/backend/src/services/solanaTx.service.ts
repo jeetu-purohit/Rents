@@ -52,6 +52,27 @@ export interface MintTicketTransactionInput {
   uri: string;
 }
 
+export interface HolderTransactionInput {
+  holderPubkey: string;
+  mintPubkey: string;
+}
+
+export interface ListTicketTransactionInput extends HolderTransactionInput {
+  priceLamports: string;
+}
+
+export interface ResellTicketTransactionInput {
+  buyerPubkey: string;
+  sellerPubkey: string;
+  mintPubkey: string;
+}
+
+export interface CheckInTicketTransactionInput {
+  organizerPubkey: string;
+  holderPubkey: string;
+  mintPubkey: string;
+}
+
 export interface UnsignedTransactionResult {
   transaction: string;
   blockhash: string;
@@ -225,4 +246,109 @@ export async function buildMintTicketTransaction(
     ...(await serializeUnsignedTransaction(instruction, buyer)),
     ticketPda: ticketPda.toBase58(),
   };
+}
+
+async function loadTicketContext(mint: PublicKey) {
+  const [ticketPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("ticket"), mint.toBuffer()],
+    programId
+  );
+  const ticket = await program.account.ticket.fetch(ticketPda);
+  if (!ticket.mint.equals(mint)) throw new TransactionInputError("Ticket mint does not match mintPubkey");
+  const event = await program.account.event.fetch(ticket.event);
+  const [eventPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("event"), event.organizer.toBuffer(), event.eventId.toArrayLike(Buffer, "le", 8)],
+    programId
+  );
+  if (!eventPda.equals(ticket.event)) throw new TransactionInputError("Ticket refers to a noncanonical Event PDA");
+  return { ticketPda, ticket, event, eventPda };
+}
+
+async function deriveAssociatedTokenAddress(owner: PublicKey, mint: PublicKey): Promise<PublicKey> {
+  const [address] = PublicKey.findProgramAddressSync(
+    [owner.toBuffer(), tokenProgramId.toBuffer(), mint.toBuffer()],
+    associatedTokenProgramId
+  );
+  return address;
+}
+
+export async function buildListTicketTransaction(input: ListTicketTransactionInput) {
+  const holder = publicKey(input.holderPubkey, "holderPubkey");
+  const mint = publicKey(input.mintPubkey, "mintPubkey");
+  const price = u64(input.priceLamports, "priceLamports");
+  const { ticketPda, eventPda } = await loadTicketContext(mint);
+  const tokenAccount = await deriveAssociatedTokenAddress(holder, mint);
+  const instruction = await program.methods.listTicket(price).accountsStrict({
+    holder,
+    event: eventPda,
+    ticket: ticketPda,
+    tokenAccount,
+  }).instruction();
+  return serializeUnsignedTransaction(instruction, holder);
+}
+
+export async function buildCancelListingTransaction(input: HolderTransactionInput) {
+  const holder = publicKey(input.holderPubkey, "holderPubkey");
+  const mint = publicKey(input.mintPubkey, "mintPubkey");
+  const { ticketPda } = await loadTicketContext(mint);
+  const tokenAccount = await deriveAssociatedTokenAddress(holder, mint);
+  const instruction = await program.methods.cancelListing().accountsStrict({
+    holder,
+    ticket: ticketPda,
+    tokenAccount,
+  }).instruction();
+  return serializeUnsignedTransaction(instruction, holder);
+}
+
+export async function buildResellTicketTransaction(input: ResellTicketTransactionInput) {
+  const buyer = publicKey(input.buyerPubkey, "buyerPubkey");
+  const seller = publicKey(input.sellerPubkey, "sellerPubkey");
+  const mint = publicKey(input.mintPubkey, "mintPubkey");
+  const { ticketPda, eventPda, event } = await loadTicketContext(mint);
+  const [platformConfig] = PublicKey.findProgramAddressSync(
+    [Buffer.from("platform_config")],
+    programId
+  );
+  const config = await program.account.platformConfig.fetch(platformConfig);
+  const [ticketAuthority] = PublicKey.findProgramAddressSync(
+    [Buffer.from("authority")],
+    programId
+  );
+  const sellerTokenAccount = await deriveAssociatedTokenAddress(seller, mint);
+  const buyerTokenAccount = await deriveAssociatedTokenAddress(buyer, mint);
+  const instruction = await program.methods.resellTicket().accountsStrict({
+    buyer,
+    event: eventPda,
+    ticket: ticketPda,
+    organizer: event.organizer,
+    seller,
+    platformConfig,
+    platformWallet: config.platformWallet,
+    ticketAuthority,
+    mint,
+    sellerTokenAccount,
+    buyerTokenAccount,
+    tokenProgram: tokenProgramId,
+    associatedTokenProgram: associatedTokenProgramId,
+    systemProgram: SystemProgram.programId,
+  }).instruction();
+  return serializeUnsignedTransaction(instruction, buyer);
+}
+
+export async function buildCheckInTicketTransaction(input: CheckInTicketTransactionInput) {
+  const organizer = publicKey(input.organizerPubkey, "organizerPubkey");
+  const holder = publicKey(input.holderPubkey, "holderPubkey");
+  const mint = publicKey(input.mintPubkey, "mintPubkey");
+  const { ticketPda, eventPda } = await loadTicketContext(mint);
+  const tokenAccount = await deriveAssociatedTokenAddress(holder, mint);
+  const instruction = await program.methods.checkInTicket().accountsStrict({
+    organizer,
+    event: eventPda,
+    ticket: ticketPda,
+    mint,
+    holder,
+    tokenAccount,
+    tokenProgram: tokenProgramId,
+  }).instruction();
+  return serializeUnsignedTransaction(instruction, organizer);
 }

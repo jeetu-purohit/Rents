@@ -2,6 +2,10 @@ import type { NextFunction, Request, Response } from "express";
 import {
   buildInitializeEventTransaction as buildInitializeEventTx,
   buildMintTicketTransaction as buildMintTicketTx,
+  buildListTicketTransaction as buildListTicketTx,
+  buildCancelListingTransaction as buildCancelListingTx,
+  buildResellTicketTransaction as buildResellTicketTx,
+  buildCheckInTicketTransaction as buildCheckInTicketTx,
   TransactionInputError,
 } from "../services/solanaTx.service";
 
@@ -65,4 +69,47 @@ export async function buildMintTicketTransaction(
   } catch (err) {
     next(err);
   }
+}
+
+export async function buildListTicketTransaction(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = requestBody(req.body);
+    res.json(await buildListTicketTx({
+      holderPubkey: stringField(body, "holderPubkey"),
+      mintPubkey: stringField(body, "mintPubkey"),
+      priceLamports: stringField(body, "priceLamports"),
+    }));
+  } catch (err) { next(err); }
+}
+
+export async function buildCancelListingTransaction(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = requestBody(req.body);
+    res.json(await buildCancelListingTx({
+      holderPubkey: stringField(body, "holderPubkey"),
+      mintPubkey: stringField(body, "mintPubkey"),
+    }));
+  } catch (err) { next(err); }
+}
+
+export async function buildResellTicketTransaction(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = requestBody(req.body);
+    res.json(await buildResellTicketTx({
+      buyerPubkey: stringField(body, "buyerPubkey"),
+      sellerPubkey: stringField(body, "sellerPubkey"),
+      mintPubkey: stringField(body, "mintPubkey"),
+    }));
+  } catch (err) { next(err); }
+}
+
+export async function buildCheckInTicketTransaction(req: Request, res: Response, next: NextFunction) {
+  try {
+    const body = requestBody(req.body);
+    res.json(await buildCheckInTicketTx({
+      organizerPubkey: stringField(body, "organizerPubkey"),
+      holderPubkey: stringField(body, "holderPubkey"),
+      mintPubkey: stringField(body, "mintPubkey"),
+    }));
+  } catch (err) { next(err); }
 }
