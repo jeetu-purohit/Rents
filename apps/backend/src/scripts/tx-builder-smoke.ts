@@ -2,6 +2,7 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import { Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { connection, program, programId } from "../config/solana";
+import { Event } from "../models/Event.model";
 import { Ticket } from "../models/Ticket.model";
 
 interface UnsignedTransactionResponse {
@@ -40,6 +41,15 @@ async function getJson(path: string): Promise<unknown> {
   const payload: unknown = await response.json();
   if (!response.ok) throw new Error(`${path} returned ${response.status}: ${JSON.stringify(payload)}`);
   return payload;
+}
+
+async function postJson(path: string, body: Record<string, unknown>): Promise<{ status: number; payload: unknown }> {
+  const response = await fetch(`http://127.0.0.1:${process.env.PORT ?? "4000"}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return { status: response.status, payload: await response.json() as unknown };
 }
 
 function objectRecord(value: unknown, context: string): Record<string, unknown> {
@@ -209,13 +219,35 @@ assert(eventAccount.eventId.toString() === eventId, "Event ID did not match");
 assert(eventAccount.maxTickets === 3, "Event max ticket count did not match");
 assert(eventAccount.basePrice.toString() === "10000000", "Event base price did not match");
 
+const eventName = "Task 3.7 Metadata Smoke";
+const eventDescription = "Metadata endpoint integration fixture";
+const eventVenue = "Rents Test Hall";
+const eventDate = "2030-01-02T03:04:05.000Z";
+const eventImage = "https://example.test/rents-ticket.png";
+const savedEvent = await postJson("/api/events", {
+  onChainEventId: eventId,
+  organizerPubkey: organizer.publicKey.toBase58(),
+  eventPda: eventPda.toBase58(),
+  name: eventName,
+  description: eventDescription,
+  venue: eventVenue,
+  date: eventDate,
+  imageUrl: eventImage,
+  maxTickets: 3,
+  basePriceLamports: "10000000",
+  resaleCapBps: 11_000,
+  royaltyBps: 500,
+});
+assert(savedEvent.status === 201, `Event metadata creation returned ${savedEvent.status}`);
+assert(objectRecord(savedEvent.payload, "created event").eventPda === eventPda.toBase58(), "saved Event metadata was linked to the wrong Event PDA");
+
 const mint = Keypair.generate();
 const mintResponse = await postTransaction("/api/tx/mint", {
   buyerPubkey: seller.publicKey.toBase58(),
   eventPda: eventPda.toBase58(),
   mintPubkey: mint.publicKey.toBase58(),
-  eventName: "Task 3.4 Builder Smoke",
-  uri: "https://example.test/task-3-4-smoke.json",
+  eventName,
+  uri: `http://127.0.0.1:${process.env.PORT ?? "4000"}/api/metadata/${mint.publicKey.toBase58()}`,
 });
 assert(typeof mintResponse.ticketPda === "string", "mint omitted ticketPda");
 const mintTransaction = deserializeUnsigned(mintResponse, seller.publicKey);
@@ -344,6 +376,47 @@ const explicitSync: unknown = await explicitSyncResponse.json();
 assert(explicitSyncResponse.ok, `explicit sync returned ${explicitSyncResponse.status}: ${JSON.stringify(explicitSync)}`);
 const explicitlySyncedTicket = assertIndexedTicket(explicitSync, expectedCache);
 
+const metadata = objectRecord(await getJson(`/api/metadata/${expectedCache.mint}`), "NFT metadata");
+assert(metadata.name === `${eventName} #${checkedInTicket.ticketNumber}`, "metadata name did not match mint naming convention and authoritative ticket number");
+assert(metadata.symbol === "RENTS", "metadata symbol did not match");
+assert(metadata.description === eventDescription, "metadata description did not come from the matching Event");
+assert(metadata.image === eventImage, "metadata image did not come from the matching Event");
+assert(Array.isArray(metadata.attributes), "metadata attributes were not an array");
+const attributes = metadata.attributes.map((value) => objectRecord(value, "metadata attribute"));
+const attributeValues = new Map(attributes.map((attribute) => [attribute.trait_type, attribute.value]));
+assert(attributeValues.get("event") === eventName, "event attribute was incorrect");
+assert(attributeValues.get("venue") === eventVenue, "venue attribute was incorrect");
+assert(attributeValues.get("date") === eventDate, "date attribute was incorrect");
+assert(attributeValues.get("ticket #") === String(checkedInTicket.ticketNumber), "ticket number attribute was not authoritative");
+const serializedMetadata = JSON.stringify(metadata);
+assert(typeof serializedMetadata === "string", "metadata was not JSON serializable");
+objectRecord(JSON.parse(serializedMetadata) as unknown, "serialized NFT metadata");
+
+const removedEventCache = await Event.findOneAndDelete({ eventPda: expectedCache.eventPda });
+assert(removedEventCache !== null, "metadata Event cache fixture was missing before the missing-Event test");
+const missingEventMetadata = await fetch(`http://127.0.0.1:${process.env.PORT ?? "4000"}/api/metadata/${expectedCache.mint}`);
+assert(missingEventMetadata.status === 404, `missing Event metadata returned ${missingEventMetadata.status}, expected 404`);
+await Event.create({
+  onChainEventId: eventId,
+  organizerPubkey: organizer.publicKey.toBase58(),
+  eventPda: eventPda.toBase58(),
+  name: eventName,
+  description: eventDescription,
+  venue: eventVenue,
+  date: eventDate,
+  imageUrl: eventImage,
+  maxTickets: 3,
+  basePriceLamports: "10000000",
+  resaleCapBps: 11_000,
+  royaltyBps: 500,
+});
+
+const badMetadataResponse = await fetch(`http://127.0.0.1:${process.env.PORT ?? "4000"}/api/metadata/not-a-public-key`);
+assert(badMetadataResponse.status === 400, `invalid metadata mint returned ${badMetadataResponse.status}, expected 400`);
+const unknownMint = Keypair.generate().publicKey.toBase58();
+const unknownMetadataResponse = await fetch(`http://127.0.0.1:${process.env.PORT ?? "4000"}/api/metadata/${unknownMint}`);
+assert(unknownMetadataResponse.status === 404, `unknown metadata mint returned ${unknownMetadataResponse.status}, expected 404`);
+
 const duplicateDocumentCount = await Ticket.countDocuments({ mintAddress: expectedCache.mint });
 assert(duplicateDocumentCount === 1, `expected one Mongo cache document, found ${duplicateDocumentCount}`);
 await waitForNewPoll(expectedCache.mint, Date.parse(String(explicitlySyncedTicket.lastSyncedAt)), 15_000);
@@ -383,6 +456,7 @@ console.log(
     checkIn: "confirmed through API; is_used verified; duplicate rejected with TicketAlreadyUsed (6012)",
     indexer: "Mongo cache verified through polling and POST sync; repeated polling kept one document",
     listings: "GET listings included the ticket while listed and excluded it after resale",
+    metadata: "GET metadata returned Metaplex-compatible JSON from the matching Event and authoritative Ticket number; invalid mint, unknown mint, and missing Event returned 400/404",
     eventPda: eventPda.toBase58(),
     ticketPda: ticketPda.toBase58(),
     userTransactionsUnsignedBeforeClientSigning: true,

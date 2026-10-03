@@ -5,6 +5,7 @@ import eventRoutes from "./routes/events.routes.ts";
 import ticketRoutes from "./routes/ticket.routes";
 import checkinRoutes from "./routes/checkin.routes";
 import txRoutes from "./routes/tx.routes";
+import metadataRoutes from "./routes/metadata.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { startIndexer } from "./services/indexer.service";
 
@@ -20,6 +21,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/checkin", checkinRoutes);
 app.use("/api/tx", txRoutes);
+app.use("/api/metadata", metadataRoutes);
 
 app.use(errorHandler);
 

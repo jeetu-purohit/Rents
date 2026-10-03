@@ -137,10 +137,11 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Depends on:** 3.5
 - **Verified:** `bunx tsc --noEmit -p apps/backend`, shared build, and `git diff --check` passed; backend started with indexing disabled and enabled; API/local-validator/Mongo smoke confirmed polling and explicit sync cache fields, owner and check-in state, repeated-poll deduplication, sync 400/404 behavior without fake rows, and listings reflected list/resale state.
 
-### 3.7 `TODO`: Metadata endpoint
+### 3.7 `DONE`: Metadata endpoint
 - **Do:** `GET /api/metadata/:mint` returns Metaplex-standard JSON (name, symbol, description, image, attributes: event, venue, date, ticket #). `metadata.service.ts` builds it from Event + Ticket.
 - **Done when:** a minted ticket's URI resolves and the JSON validates against the standard fields.
 - **Depends on:** 3.1
+- **Verified:** backend typecheck, shared build, and `git diff --check` passed; local API/validator/Mongo lifecycle smoke minted with the metadata endpoint URI and verified HTTP 200, Metaplex fields/attributes, Event association, on-chain ticket number, JSON serialization, and 400/404 responses for invalid/unknown mint and missing Event metadata; backend health returned `{"status":"ok"}`.
 
 ### 3.8 `TODO`: `/api/checkin/verify` reads the chain first
 - **Do:** Per SPEC §6.2/§8: fetch Ticket + token account owner from chain; compare to QR payload; cache only on RPC failure.
