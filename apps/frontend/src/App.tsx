@@ -3,6 +3,7 @@ import { WalletButton } from './components/WalletButton'
 import { DevnetBootstrap } from './components/DevnetBootstrap'
 import { DevnetMintCheck } from './components/DevnetMintCheck'
 import { ExploreEventsPage } from './components/ExploreEventsPage'
+import { EventDetailsPage } from './components/EventDetailsPage'
 import { LandingPage } from './components/LandingPage'
 
 const navigation = [
@@ -99,7 +100,8 @@ function RouteContent({ pathname }: { pathname: string }) {
   if (pathname === '/') return <LandingPage />
   if (pathname === '/events') return <ExploreEventsPage />
   if (pathname === '/marketplace') return <PlaceholderPage title="Ticket marketplace" description="Discover and secure authentic tickets on Solana." />
-  if (/^\/events\/[^/]+$/.test(pathname)) return <PlaceholderPage title="Event details" description="Event information and ticket options will appear here." />
+  const eventDetailsMatch = pathname.match(/^\/events\/([^/]+)$/)
+  if (eventDetailsMatch) return <EventDetailsPage id={decodeURIComponent(eventDetailsMatch[1])} />
   if (pathname === '/my-tickets') return <PlaceholderPage title="My stubs" description="Your RENTS tickets will appear here when you connect your wallet." />
   if (/^\/my-tickets\/[^/]+\/resell$/.test(pathname)) return <PlaceholderPage title="List ticket" description="Set a resale price within the event's on-chain price cap." />
   if (pathname === '/organizer') return <PlaceholderPage title="Box office" description="Organizer event tools will appear here." />

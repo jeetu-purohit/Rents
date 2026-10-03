@@ -187,9 +187,10 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Design:** `landing_page_rents`, `explore_events_rents`. Data from `GET /api/events`. Loading/empty/error states.
 - **Verified:** The landing and Explore Events routes rendered in the running frontend; Explore Events displayed real Event DTOs from `/api/events`, and card links opened the existing Event Details placeholder. Loading, empty, and API error states were manually verified using temporary local responses that were removed after the check. Desktop and mobile renders were inspected. Frontend typecheck, oxlint, production build, backend typecheck, shared build, and `git diff --check` passed. Build retains existing wallet dependency browser-externalization and bundle-size warnings.
 
-### 5.4 `TODO`: Event Details + Buy
+### 5.4 `DONE`: Event Details + Buy
 - **Design:** `event_details_rents`. Buy button → 5.2 hook; shows remaining tickets, price in SOL with the platform fee as a separate line (from `/api/platform`), resale-cap/royalty explainer; list of active resale listings for this event with Buy buttons (calls `resell`).
 - **Depends on:** 5.2, 3.5, 3.6
+- **Verified:** Live Event Details loaded the selected Event from the API and its ticket availability, face price, cap, and royalty from Devnet chain state; platform fee came from `/api/platform`; listings came from the existing listings API and were filtered by Event PDA (the selected Event currently has no active listings). Missing Event rendered the not-found state. Purchase controls call `useSendBuilderTx()` for `mint` and `resell`. Desktop and mobile layouts were inspected. Frontend typecheck, oxlint, frontend build, backend typecheck, shared build, and `git diff --check` passed. `bunx oxlint` could not access Bun's temporary directory in this environment, so the installed local oxlint binary was used successfully. Build retains existing wallet browser-externalization and bundle-size warnings.
 
 ### 5.5 `TODO`: My Stubs + QR
 - **Design:** `my_stubs_rents`. Tickets from `/api/tickets/owner/:pubkey`; QR per SPEC §8 via `qrcode.react`; status chips (valid / listed / used).

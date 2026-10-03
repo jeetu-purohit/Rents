@@ -34,7 +34,7 @@ function capLabel(resaleCapBps: number): string {
 function EventCard({ event }: { event: EventDto }) {
   return (
     <a
-      href={`/events/${encodeURIComponent(event.eventPda)}`}
+      href={`/events/${encodeURIComponent(event._id)}`}
       aria-label={`View details for ${event.name}`}
       className="group flex min-h-[430px] flex-col overflow-hidden rounded-lg bg-inverse-surface text-background transition-transform duration-200 hover:-translate-y-1"
     >
