@@ -143,10 +143,11 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Depends on:** 3.1
 - **Verified:** backend typecheck, shared build, and `git diff --check` passed; local API/validator/Mongo lifecycle smoke minted with the metadata endpoint URI and verified HTTP 200, Metaplex fields/attributes, Event association, on-chain ticket number, JSON serialization, and 400/404 responses for invalid/unknown mint and missing Event metadata; backend health returned `{"status":"ok"}`.
 
-### 3.8 `TODO`: `/api/checkin/verify` reads the chain first
+### 3.8 `DONE`: `/api/checkin/verify` reads the chain first
 - **Do:** Per SPEC §6.2/§8: fetch Ticket + token account owner from chain; compare to QR payload; cache only on RPC failure.
 - **Done when:** manual tests: valid ticket OK; used ticket rejected; wrong event rejected; spoofed owner rejected.
 - **Depends on:** 3.6
+- **Verified:** backend typecheck, shared build, and `git diff --check` passed; full local lifecycle smoke verified valid live owner, used/wrong-Event/spoofed-owner/chain-missing rejections despite cache contents, stale cached owner ignored, and unreachable-RPC cache fallback accepted; backend health returned `{"status":"ok"}`.
 
 ### 3.9 `TODO`: `GET /api/platform`
 - **Do:** Read PlatformConfig from chain and return `{ platformFeeBps, platformWallet }` (short in-memory cache OK). The frontend uses it to show the fee as a separate line before purchase.

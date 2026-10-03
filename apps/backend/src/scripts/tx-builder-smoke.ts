@@ -43,13 +43,42 @@ async function getJson(path: string): Promise<unknown> {
   return payload;
 }
 
-async function postJson(path: string, body: Record<string, unknown>): Promise<{ status: number; payload: unknown }> {
-  const response = await fetch(`http://127.0.0.1:${process.env.PORT ?? "4000"}${path}`, {
+async function postJson(path: string, body: Record<string, unknown>, port = process.env.PORT ?? "4000"): Promise<{ status: number; payload: unknown }> {
+  const response = await fetch(`http://127.0.0.1:${port}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
   return { status: response.status, payload: await response.json() as unknown };
+}
+
+async function startRpcFailureBackend(): Promise<ReturnType<typeof Bun.spawn>> {
+  const child = Bun.spawn(["bun", "run", "src/index.ts"], {
+    cwd: process.cwd(),
+    env: {
+      PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
+      MONGO_URI: process.env.MONGO_URI ?? "mongodb://127.0.0.1:27017/rents",
+      SOLANA_RPC_URL: "http://127.0.0.1:1",
+      PROGRAM_ID: programId.toBase58(),
+      PORT: "4001",
+      INDEXER_ENABLED: "false",
+    },
+    stdout: "ignore",
+    stderr: "ignore",
+  });
+  const deadline = Date.now() + 12_000;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) throw new Error(`RPC-failure backend exited with ${child.exitCode}`);
+    try {
+      const response = await fetch("http://127.0.0.1:4001/health");
+      if (response.ok) return child;
+    } catch {
+      // Wait for Express and Mongo to finish startup.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  child.kill();
+  throw new Error("RPC-failure backend did not become healthy");
 }
 
 function objectRecord(value: unknown, context: string): Record<string, unknown> {
@@ -336,6 +365,75 @@ assert(actualBuyerTokenAccount.data.readBigUInt64LE(64) === 1n, "buyer token bal
 assert(actualBuyerTokenAccount.data[108] === 2, "resold buyer token account is not frozen");
 assertOnlyListedTickets(await getJson("/api/tickets/listings"), mint.publicKey.toBase58(), false);
 
+const verifyBody = {
+  mint: mint.publicKey.toBase58(),
+  owner: buyer.publicKey.toBase58(),
+  eventPda: eventPda.toBase58(),
+};
+const validVerification = await postJson("/api/checkin/verify", verifyBody);
+assert(validVerification.status === 200, `valid chain verification returned ${validVerification.status}`);
+const validVerificationBody = objectRecord(validVerification.payload, "valid verification response");
+assert(validVerificationBody.valid === true, "valid ticket was not accepted");
+assert(objectRecord(validVerificationBody.ticket, "verified chain Ticket").ownerPubkey === buyer.publicKey.toBase58(), "success response did not use the live owner");
+
+const spoofedOwner = Keypair.generate().publicKey.toBase58();
+await Ticket.updateOne({ mintAddress: mint.publicKey.toBase58() }, {
+  $set: { ownerPubkey: spoofedOwner, isCheckedIn: false },
+});
+const staleCacheVerification = await postJson("/api/checkin/verify", verifyBody);
+assert(staleCacheVerification.status === 200, "healthy chain verification did not override a stale cached owner");
+assert(
+  objectRecord(objectRecord(staleCacheVerification.payload, "stale-cache verification").ticket, "chain Ticket").ownerPubkey === buyer.publicKey.toBase58(),
+  "stale Mongo owner leaked into the successful chain response"
+);
+const spoofedVerification = await postJson("/api/checkin/verify", {
+  ...verifyBody,
+  owner: spoofedOwner,
+});
+assert(spoofedVerification.status === 403, `spoofed QR owner returned ${spoofedVerification.status}, expected 403`);
+
+const wrongEventVerification = await postJson("/api/checkin/verify", {
+  ...verifyBody,
+  eventPda: Keypair.generate().publicKey.toBase58(),
+});
+assert(wrongEventVerification.status === 409, `wrong Event returned ${wrongEventVerification.status}, expected 409`);
+
+const unknownVerifyMint = Keypair.generate().publicKey;
+const [unknownVerifyTicketPda] = PublicKey.findProgramAddressSync(
+  [Buffer.from("ticket"), unknownVerifyMint.toBuffer()],
+  programId
+);
+await Ticket.create({
+  mintAddress: unknownVerifyMint.toBase58(),
+  ticketPda: unknownVerifyTicketPda.toBase58(),
+  eventPda: eventPda.toBase58(),
+  ownerPubkey: buyer.publicKey.toBase58(),
+  faceValueLamports: "10000000",
+  isCheckedIn: false,
+  resaleCount: 0,
+  lastSyncedAt: new Date(),
+});
+const chainMissingTicketVerification = await postJson("/api/checkin/verify", {
+  mint: unknownVerifyMint.toBase58(),
+  owner: buyer.publicKey.toBase58(),
+  eventPda: eventPda.toBase58(),
+});
+assert(chainMissingTicketVerification.status === 404, "Mongo cache overrode a healthy chain response showing no Ticket");
+await Ticket.deleteOne({ mintAddress: unknownVerifyMint.toBase58() });
+
+await Ticket.updateOne({ mintAddress: mint.publicKey.toBase58() }, {
+  $set: { ownerPubkey: buyer.publicKey.toBase58(), isCheckedIn: false },
+});
+const rpcFailureBackend = await startRpcFailureBackend();
+try {
+  const cacheFallback = await postJson("/api/checkin/verify", verifyBody, "4001");
+  assert(cacheFallback.status === 200, `RPC-failure cache fallback returned ${cacheFallback.status}`);
+  assert(objectRecord(cacheFallback.payload, "cache fallback response").valid === true, "valid cached ticket was not accepted after RPC failure");
+} finally {
+  rpcFailureBackend.kill();
+  await rpcFailureBackend.exited;
+}
+
 const checkInResponse = await postTransaction("/api/tx/check-in", {
   organizerPubkey: organizer.publicKey.toBase58(),
   holderPubkey: buyer.publicKey.toBase58(),
@@ -345,6 +443,10 @@ const checkInTransaction = deserializeUnsigned(checkInResponse, organizer.public
 await submit(checkInTransaction, checkInResponse.lastValidBlockHeight, organizer);
 const checkedInTicket = await program.account.ticket.fetch(ticketPda);
 assert(checkedInTicket.isUsed, "Ticket was not marked used");
+await Ticket.updateOne({ mintAddress: mint.publicKey.toBase58() }, { $set: { isCheckedIn: false } });
+const usedTicketVerification = await postJson("/api/checkin/verify", verifyBody);
+assert(usedTicketVerification.status === 409, "healthy chain acceptance did not reject the used Ticket despite stale cache");
+assert(objectRecord(usedTicketVerification.payload, "used Ticket rejection").valid === false, "used Ticket response was not rejected");
 
 const expectedCache = {
   mint: mint.publicKey.toBase58(),
@@ -457,6 +559,7 @@ console.log(
     indexer: "Mongo cache verified through polling and POST sync; repeated polling kept one document",
     listings: "GET listings included the ticket while listed and excluded it after resale",
     metadata: "GET metadata returned Metaplex-compatible JSON from the matching Event and authoritative Ticket number; invalid mint, unknown mint, and missing Event returned 400/404",
+    checkInVerify: "chain accepted the live holder; rejected used, wrong-Event, spoofed-owner, and chain-missing tickets despite stale Mongo; unreachable-RPC fallback accepted the valid cached Ticket",
     eventPda: eventPda.toBase58(),
     ticketPda: ticketPda.toBase58(),
     userTransactionsUnsignedBeforeClientSigning: true,
