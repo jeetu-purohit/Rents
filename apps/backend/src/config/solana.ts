@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
 import { Program, type Idl, type Provider } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";
+import sharedIdlJson from "shared/idl/rents_ticketing.json";
 
 function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
@@ -14,13 +14,9 @@ const programIdValue = requiredEnv("PROGRAM_ID");
 export const programId = new PublicKey(programIdValue);
 export const connection = new Connection(rpcUrl, "confirmed");
 
-const sharedIdl = JSON.parse(
-  readFileSync(new URL("../../../../packages/shared/idl/rents_ticketing.json", import.meta.url), "utf8")
-) as Idl;
-
 // Anchor 0.32 reads the address from the IDL. Override only that field so the
 // environment remains the source of truth for which deployed program is used.
-const configuredIdl: Idl = { ...sharedIdl, address: programId.toBase58() };
+const configuredIdl: Idl = { ...(sharedIdlJson as Idl), address: programId.toBase58() };
 const readOnlyProvider: Provider = { connection };
 
 export const program = new Program(configuredIdl, readOnlyProvider);

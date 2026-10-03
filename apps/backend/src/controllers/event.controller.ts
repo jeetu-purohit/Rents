@@ -1,7 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
+import type { CreateEventRequest } from "shared";
 import { Event } from "../models/Event.model";
 
-export async function createEvent(req: Request, res: Response, next: NextFunction) {
+export async function createEvent(
+  req: Request<Record<string, string>, unknown, CreateEventRequest>,
+  res: Response,
+  next: NextFunction
+) {
   try {
     // TODO: this should run AFTER the frontend confirms the on-chain
     // initialize_event tx, passing back onChainEventId and eventPda.

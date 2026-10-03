@@ -114,9 +114,10 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Depends on:** 2.7
 - **Verified:** backend typecheck passed; Devnet program-account smoke passed; package `dev` command connected to Mongo and started Express; `git diff --check` passed.
 
-### 3.3 `TODO`: Wire `packages/shared` into backend and frontend
+### 3.3 `DONE`: Wire `packages/shared` into backend and frontend
 - **Do:** Export IDL, generated types, and shared API DTO types (Event, Ticket, request/response shapes). Configure workspace imports so both apps import from `@rents/shared` (or whatever the package name is).
 - **Done when:** both apps typecheck while importing a shared type.
+- **Verified:** shared package build passed; backend and frontend typechecks passed with workspace imports; backend Devnet smoke passed using the IDL package export.
 
 ### 3.4 `TODO`: `solanaTx.service.ts`: `initialize-event` and `mint` builders
 - **Do:** Build base64 **unsigned** txs with the correct accounts (derive PDAs, include PlatformConfig and the platform wallet). For `mint`, the client generates the fresh mint keypair and sends its public key to the backend; the backend uses that public key when constructing the transaction, and the frontend/script adds the mint-keypair signature plus the user's wallet signature before submission. The backend must never sign the transaction. Routes `POST /api/tx/initialize-event`, `/api/tx/mint`.
