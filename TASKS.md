@@ -54,7 +54,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 
 > This phase is the critical path. One instruction per session. Commit after each.
 
-### 2.1 `TODO`: `mint_ticket` part 1: payments and counters (no Metaplex yet)
+### 2.1 `DONE`: `mint_ticket` part 1: payments and counters (no Metaplex yet)
 - **Do:** Implement the payments (buyer → organizer `base_price`; buyer → platform wallet `fee`, read from PlatformConfig), `tickets_sold` increment with the `SoldOut` check, Ticket PDA creation (`face_value` copy, `ticket_number`). Use a plain SPL mint (decimals 0) with the ATA and mint-1 flow; no metadata, no freeze yet.
 - **Tests:** organizer balance rises by exactly `base_price`; platform wallet by exactly `base_price * fee_bps / 10000`; buyer is debited price + fee (+ rent); Ticket PDA correct; selling past `max_tickets` fails `SoldOut`; wrong organizer/platform-wallet accounts fail.
 - **Depends on:** 1.1, 1.3

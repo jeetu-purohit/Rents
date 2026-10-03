@@ -56,8 +56,8 @@ pub mod rents_ticketing {
 
     //function that creates a nft ticket to a buyers wallet using the metaplex CPI.
     // the users buy the ticket using there wallet and that 95% of that money goes directly to the organizers wallet and the rest 5% goes to our fat wallet as the platform charges.Same with the royalty.
-    pub fn mint_ticket(ctx: Context<MintTicket>) -> Result<()> {
-        Ok(())
+    pub fn mint_ticket(ctx: Context<MintTicket>, uri: String) -> Result<()> {
+        instructions::mint_ticket::handler(ctx, uri)
     }
 
     //transfer ticket to new buyer and enforces a price cap , and split the royalty with the organizer and to my fat wallet.
