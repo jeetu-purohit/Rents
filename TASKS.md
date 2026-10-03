@@ -59,8 +59,8 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Tests:** organizer balance rises by exactly `base_price`; platform wallet by exactly `base_price * fee_bps / 10000`; buyer is debited price + fee (+ rent); Ticket PDA correct; selling past `max_tickets` fails `SoldOut`; wrong organizer/platform-wallet accounts fail.
 - **Depends on:** 1.1, 1.3
 
-### 2.2 `TODO`: `mint_ticket` part 2: Metaplex metadata, authority lockdown, freeze
-- **Do:** Add, in this order: Metaplex metadata CPI (SPEC §5.2.2); mint authority → None; buyer approves TicketAuthority as delegate; freeze the buyer's token account with TicketAuthority. Mint is created with freeze authority = TicketAuthority from the start. **No Master Edition.** Match the installed `mpl-token-metadata` API.
+### 2.2 `DONE`: `mint_ticket` part 2: Metaplex metadata, authority lockdown, freeze
+- **Do:** Accept the off-chain event name and URI in `mint_ticket(event_name, uri)`; add, in this order: Metaplex metadata CPI (SPEC §5.2.2); mint authority → None; buyer approves TicketAuthority as delegate; freeze the buyer's token account with TicketAuthority. Mint is created with freeze authority = TicketAuthority from the start. Keep the Event account layout unchanged. **No Master Edition.** Match the installed `mpl-token-metadata` API. The metadata JSON endpoint is Task 3.7.
 - **Tests:** metadata decodes with correct name/symbol/URI/royalty bps; mint supply 1, mint authority None, freeze authority = TicketAuthority PDA; token account state is Frozen; **direct SPL `transfer` by the owner fails**; transfer by an unrelated signer fails; owner `revoke`/`approve`/`burn`/`close_account` all fail.
 - **Also check and report:** that metadata creation works without a Master Edition on this version (SPEC §5.4 D2). If it doesn't, STOP and report; don't pick a fallback.
 - **Depends on:** 2.1, 0.3

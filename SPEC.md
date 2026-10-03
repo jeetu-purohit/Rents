@@ -115,7 +115,7 @@ Validation: `resale_cap_bps >= 10000`, `royalty_bps <= 2000`, `max_tickets > 0`.
 
 1. **`initialize_event(event_id, max_tickets, base_price, resale_cap_bps, royalty_bps)`**: organizer signs; creates Event PDA.
 
-2. **`mint_ticket(uri)`**: buyer signs and pays.
+2. **`mint_ticket(event_name , uri)`**: buyer signs and pays.
    - Checks `tickets_sold < max_tickets`.
    - Payments from buyer: `base_price` → organizer; `fee` → `platform_wallet`.
    - Creates the mint (decimals 0) with **freeze authority = TicketAuthority**, creates the buyer's ATA, mints exactly 1 token.

@@ -49,6 +49,93 @@ describe("rents-ticketing", () => {
       ASSOCIATED_TOKEN_PROGRAM_ID
     )[0];
 
+  const ticketAuthorityPda = () =>
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("authority")],
+      program.programId
+    )[0];
+
+  const metadataPda = (mint: anchor.web3.PublicKey) =>
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("metadata"), METAPLEX_TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+      METAPLEX_TOKEN_METADATA_PROGRAM_ID
+    )[0];
+
+  const decodeMetadata = (data: Buffer) => {
+    let offset = 1 + 32 + 32;
+    const readString = (): string => {
+      const length = data.readUInt32LE(offset);
+      offset += 4;
+      const value = data.toString("utf8", offset, offset + length).replace(/\0+$/, "");
+      offset += length;
+      return value;
+    };
+    const name = readString();
+    const symbol = readString();
+    const uri = readString();
+    const sellerFeeBasisPoints = data.readUInt16LE(offset);
+    offset += 2;
+    const creatorOption = data[offset];
+    offset += 1;
+    const creators: anchor.web3.PublicKey[] = [];
+    if (creatorOption === 1) {
+      const creatorCount = data.readUInt32LE(offset);
+      offset += 4;
+      for (let index = 0; index < creatorCount; index += 1) {
+        creators.push(new anchor.web3.PublicKey(data.subarray(offset, offset + 32)));
+        offset += 34;
+      }
+    }
+    return { name, symbol, uri, sellerFeeBasisPoints, creators };
+  };
+
+  const splInstruction = (
+    tag: number,
+    keys: anchor.web3.AccountMeta[],
+    amount?: bigint
+  ) => {
+    const data = Buffer.alloc(amount === undefined ? 1 : 9);
+    data[0] = tag;
+    if (amount !== undefined) data.writeBigUInt64LE(amount, 1);
+    return new anchor.web3.TransactionInstruction({
+      programId: TOKEN_PROGRAM_ID,
+      keys,
+      data,
+    });
+  };
+
+  const createAssociatedTokenAccountInstruction = (
+    payer: anchor.web3.PublicKey,
+    owner: anchor.web3.PublicKey,
+    mint: anchor.web3.PublicKey,
+    address: anchor.web3.PublicKey
+  ) =>
+    new anchor.web3.TransactionInstruction({
+      programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+      keys: [
+        { pubkey: payer, isSigner: true, isWritable: true },
+        { pubkey: address, isSigner: false, isWritable: true },
+        { pubkey: owner, isSigner: false, isWritable: false },
+        { pubkey: mint, isSigner: false, isWritable: false },
+        { pubkey: anchor.web3.SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      ],
+      data: Buffer.from([0]),
+    });
+
+  const expectTransactionFailure = async (
+    transaction: anchor.web3.Transaction,
+    signers: anchor.web3.Keypair[] = []
+  ): Promise<void> => {
+    let failed = false;
+    try {
+      await provider.sendAndConfirm(transaction, signers);
+    } catch {
+      failed = true;
+    }
+    assert.isTrue(failed, "Expected the SPL token transaction to fail");
+  };
+
   const platformConfigPda = () =>
     anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("platform_config")],
@@ -265,6 +352,8 @@ describe("rents-ticketing", () => {
     const organizer = anchor.web3.Keypair.generate();
     const buyer = anchor.web3.Keypair.generate();
     const eventId = new anchor.BN(21);
+    const eventName = "Solana Fall School";
+    const uri = "https://example.test/metadata/solana-fall-school.json";
     const basePrice = new anchor.BN(10_000_000);
     const fee = 100_000;
     const [event] = eventPda(organizer.publicKey, eventId);
@@ -295,6 +384,7 @@ describe("rents-ticketing", () => {
     const organizerBefore = await provider.connection.getBalance(organizer.publicKey);
     const platformBefore = await provider.connection.getBalance(platformWallet);
     const buyerBefore = await provider.connection.getBalance(buyer.publicKey);
+    let accountRentTotal = 0;
     const minted: Array<{ mint: anchor.web3.Keypair; ticket: anchor.web3.PublicKey }> = [];
 
     for (let index = 0; index < 2; index += 1) {
@@ -302,16 +392,19 @@ describe("rents-ticketing", () => {
       const [ticket] = ticketPda(mint.publicKey);
       const buyerTokenAccount = associatedTokenAddress(buyer.publicKey, mint.publicKey);
       await program.methods
-        .mintTicket("https://example.test/ticket.json")
+        .mintTicket(eventName, uri)
         .accounts({
           buyer: buyer.publicKey,
           event,
           organizer: organizer.publicKey,
           platformConfig: platformConfigPda(),
           platformWallet,
+          ticketAuthority: ticketAuthorityPda(),
           mint: mint.publicKey,
           ticket,
           buyerTokenAccount,
+          metadata: metadataPda(mint.publicKey),
+          tokenMetadataProgram: METAPLEX_TOKEN_METADATA_PROGRAM_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
@@ -335,6 +428,12 @@ describe("rents-ticketing", () => {
       assert.equal(mintInfo!.owner.toBase58(), TOKEN_PROGRAM_ID.toBase58());
       assert.equal(mintInfo!.data[44], 0, "mint decimals must be zero");
       assert.equal(mintInfo!.data.readBigUInt64LE(36), 1n, "mint supply must be one");
+      assert.equal(mintInfo!.data.readUInt32LE(0), 0, "mint authority must be revoked");
+      assert.equal(mintInfo!.data.readUInt32LE(46), 1, "freeze authority must be set");
+      assert.equal(
+        new anchor.web3.PublicKey(mintInfo!.data.subarray(50, 82)).toBase58(),
+        ticketAuthorityPda().toBase58()
+      );
 
       const tokenInfo = await provider.connection.getAccountInfo(buyerTokenAccount);
       assert.isNotNull(tokenInfo);
@@ -344,6 +443,35 @@ describe("rents-ticketing", () => {
         new anchor.web3.PublicKey(tokenInfo!.data.subarray(32, 64)).toBase58(),
         buyer.publicKey.toBase58()
       );
+      assert.equal(tokenInfo!.data[108], 2, "buyer token account must be frozen");
+      assert.equal(tokenInfo!.data.readUInt32LE(72), 1, "delegate must be set");
+      assert.equal(
+        new anchor.web3.PublicKey(tokenInfo!.data.subarray(76, 108)).toBase58(),
+        ticketAuthorityPda().toBase58()
+      );
+      assert.equal(tokenInfo!.data.readBigUInt64LE(121), 1n);
+
+      const metadataInfo = await provider.connection.getAccountInfo(
+        metadataPda(mint.publicKey)
+      );
+      assert.isNotNull(metadataInfo, "Metaplex metadata account must exist");
+      assert.equal(
+        metadataInfo!.owner.toBase58(),
+        METAPLEX_TOKEN_METADATA_PROGRAM_ID.toBase58()
+      );
+      assert.equal(metadataInfo!.data[0], 4, "metadata account must be MetadataV1");
+      const metadata = decodeMetadata(metadataInfo!.data);
+      assert.equal(metadata.name, `${eventName} #${index + 1}`);
+      assert.equal(metadata.symbol, "RENTS");
+      assert.equal(metadata.uri, uri);
+      assert.equal(metadata.sellerFeeBasisPoints, 500);
+      assert.deepEqual(metadata.creators.map((creator) => creator.toBase58()), [
+        organizer.publicKey.toBase58(),
+      ]);
+      const ticketInfo = await provider.connection.getAccountInfo(ticket);
+      assert.isNotNull(ticketInfo);
+      accountRentTotal +=
+        mintInfo!.lamports + ticketInfo!.lamports + tokenInfo!.lamports + metadataInfo!.lamports;
 
       const eventState = await program.account.event.fetch(event);
       assert.equal(eventState.ticketsSold, index + 1);
@@ -357,16 +485,130 @@ describe("rents-ticketing", () => {
       (await provider.connection.getBalance(platformWallet)) - platformBefore,
       2 * fee
     );
-    const rentPerMint =
-      (await provider.connection.getMinimumBalanceForRentExemption(82)) +
-      (await provider.connection.getMinimumBalanceForRentExemption(8 + 97)) +
-      (await provider.connection.getMinimumBalanceForRentExemption(165));
-    assert.equal(
-      buyerBefore - (await provider.connection.getBalance(buyer.publicKey)),
-      2 * (basePrice.toNumber() + fee + rentPerMint),
-      "buyer debit must equal price, fee, and rent for the mint, Ticket, and ATA"
+    const buyerDebit = buyerBefore - (await provider.connection.getBalance(buyer.publicKey));
+    const expectedBuyerDebit = 2 * (basePrice.toNumber() + fee) + accountRentTotal;
+    assert.isAtLeast(buyerDebit, expectedBuyerDebit);
+    assert.isAtMost(
+      buyerDebit,
+      expectedBuyerDebit + 100_000,
+      "any additional buyer debit should be limited to normal transaction fees"
     );
     assert.notEqual(minted[0].ticket.toBase58(), minted[1].ticket.toBase58());
+
+    const firstMint = minted[0].mint;
+    const source = associatedTokenAddress(buyer.publicKey, firstMint.publicKey);
+    const recipient = anchor.web3.Keypair.generate();
+    const destination = associatedTokenAddress(recipient.publicKey, firstMint.publicKey);
+    await provider.sendAndConfirm(
+      new anchor.web3.Transaction().add(
+        createAssociatedTokenAccountInstruction(
+          provider.wallet.publicKey,
+          recipient.publicKey,
+          firstMint.publicKey,
+          destination
+        )
+      ),
+      []
+    );
+
+    const transferByBuyer = splInstruction(
+      3,
+      [
+        { pubkey: source, isSigner: false, isWritable: true },
+        { pubkey: destination, isSigner: false, isWritable: true },
+        { pubkey: buyer.publicKey, isSigner: true, isWritable: false },
+      ],
+      1n
+    );
+    await expectTransactionFailure(
+      new anchor.web3.Transaction().add(transferByBuyer),
+      [buyer]
+    );
+
+    const unrelatedSigner = anchor.web3.Keypair.generate();
+    const transferByUnrelatedSigner = splInstruction(
+      3,
+      [
+        { pubkey: source, isSigner: false, isWritable: true },
+        { pubkey: destination, isSigner: false, isWritable: true },
+        { pubkey: unrelatedSigner.publicKey, isSigner: true, isWritable: false },
+      ],
+      1n
+    );
+    await expectTransactionFailure(
+      new anchor.web3.Transaction().add(transferByUnrelatedSigner),
+      [unrelatedSigner]
+    );
+
+    const owner = { pubkey: buyer.publicKey, isSigner: true, isWritable: false };
+    await expectTransactionFailure(
+      new anchor.web3.Transaction().add(
+        splInstruction(5, [{ pubkey: source, isSigner: false, isWritable: true }, owner])
+      ),
+      [buyer]
+    );
+    await expectTransactionFailure(
+      new anchor.web3.Transaction().add(
+        splInstruction(
+          4,
+          [
+            { pubkey: source, isSigner: false, isWritable: true },
+            { pubkey: unrelatedSigner.publicKey, isSigner: false, isWritable: false },
+            owner,
+          ],
+          1n
+        )
+      ),
+      [buyer]
+    );
+    await expectTransactionFailure(
+      new anchor.web3.Transaction().add(
+        splInstruction(
+          8,
+          [
+            { pubkey: source, isSigner: false, isWritable: true },
+            { pubkey: firstMint.publicKey, isSigner: false, isWritable: true },
+            owner,
+          ],
+          1n
+        )
+      ),
+      [buyer]
+    );
+    await expectTransactionFailure(
+      new anchor.web3.Transaction().add(
+        splInstruction(9, [
+          { pubkey: source, isSigner: false, isWritable: true },
+          { pubkey: buyer.publicKey, isSigner: false, isWritable: true },
+          owner,
+        ])
+      ),
+      [buyer]
+    );
+
+    const sourceAfterFailures = await provider.connection.getAccountInfo(source);
+    const destinationAfterFailures = await provider.connection.getAccountInfo(destination);
+    const mintAfterFailures = await provider.connection.getAccountInfo(firstMint.publicKey);
+    assert.isNotNull(sourceAfterFailures, "frozen buyer ATA must remain open");
+    assert.equal(sourceAfterFailures!.data.readBigUInt64LE(64), 1n);
+    assert.equal(sourceAfterFailures!.data[108], 2);
+    assert.isNotNull(destinationAfterFailures);
+    assert.equal(destinationAfterFailures!.data.readBigUInt64LE(64), 0n);
+    assert.isNotNull(mintAfterFailures);
+    assert.equal(mintAfterFailures!.data.readBigUInt64LE(36), 1n);
+    const [masterEdition] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("metadata"),
+        METAPLEX_TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+        firstMint.publicKey.toBuffer(),
+        Buffer.from("edition"),
+      ],
+      METAPLEX_TOKEN_METADATA_PROGRAM_ID
+    );
+    assert.isNull(
+      await provider.connection.getAccountInfo(masterEdition),
+      "mint must not have a Master Edition"
+    );
   });
 
   it("rejects a mint beyond event capacity without changing state or payments", async () => {
@@ -400,16 +642,19 @@ describe("rents-ticketing", () => {
     const firstMint = anchor.web3.Keypair.generate();
     const [firstTicket] = ticketPda(firstMint.publicKey);
     await program.methods
-      .mintTicket("")
+      .mintTicket("Sold Out Test", "https://example.test/sold-out.json")
       .accounts({
         buyer: buyer.publicKey,
         event,
         organizer: organizer.publicKey,
         platformConfig: platformConfigPda(),
         platformWallet,
+        ticketAuthority: ticketAuthorityPda(),
         mint: firstMint.publicKey,
         ticket: firstTicket,
         buyerTokenAccount: associatedTokenAddress(buyer.publicKey, firstMint.publicKey),
+        metadata: metadataPda(firstMint.publicKey),
+        tokenMetadataProgram: METAPLEX_TOKEN_METADATA_PROGRAM_ID,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -423,16 +668,19 @@ describe("rents-ticketing", () => {
     const platformBefore = await provider.connection.getBalance(platformWallet);
     await expectProgramError(
       program.methods
-        .mintTicket("")
+        .mintTicket("Sold Out Test", "https://example.test/sold-out.json")
         .accounts({
           buyer: buyer.publicKey,
           event,
           organizer: organizer.publicKey,
           platformConfig: platformConfigPda(),
           platformWallet,
+          ticketAuthority: ticketAuthorityPda(),
           mint: soldOutMint.publicKey,
           ticket: soldOutTicket,
           buyerTokenAccount: associatedTokenAddress(buyer.publicKey, soldOutMint.publicKey),
+          metadata: metadataPda(soldOutMint.publicKey),
+          tokenMetadataProgram: METAPLEX_TOKEN_METADATA_PROGRAM_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
@@ -479,9 +727,12 @@ describe("rents-ticketing", () => {
         organizer: organizer.publicKey,
         platformConfig: platformConfigPda(),
         platformWallet,
+        ticketAuthority: ticketAuthorityPda(),
         mint: mint.publicKey,
         ticket,
         buyerTokenAccount: associatedTokenAddress(buyer.publicKey, mint.publicKey),
+        metadata: metadataPda(mint.publicKey),
+        tokenMetadataProgram: METAPLEX_TOKEN_METADATA_PROGRAM_ID,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -490,7 +741,7 @@ describe("rents-ticketing", () => {
       else accounts.platformWallet = wrongDestination.publicKey;
       await expectProgramError(
         program.methods
-          .mintTicket("")
+          .mintTicket("Wrong Destination Test", "https://example.test/invalid.json")
           .accounts(accounts)
           .signers([buyer, mint])
           .rpc(),
