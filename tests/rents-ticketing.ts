@@ -611,6 +611,236 @@ describe("rents-ticketing", () => {
     );
   });
 
+  it("lists and cancels a frozen ticket with exact cap and holder checks", async () => {
+    const organizer = anchor.web3.Keypair.generate();
+    const holder = anchor.web3.Keypair.generate();
+    const nonHolder = anchor.web3.Keypair.generate();
+    const eventId = new anchor.BN(24);
+    const otherEventId = new anchor.BN(25);
+    const faceValue = new anchor.BN(1_000_000_001);
+    const resaleCapBps = 11_000;
+    const cap = new anchor.BN(1_100_000_001);
+    const [event] = eventPda(organizer.publicKey, eventId);
+    const [otherEvent] = eventPda(organizer.publicKey, otherEventId);
+
+    for (const keypair of [organizer, holder, nonHolder]) {
+      const signature = await provider.connection.requestAirdrop(
+        keypair.publicKey,
+        2 * anchor.web3.LAMPORTS_PER_SOL
+      );
+      await provider.connection.confirmTransaction(signature, "confirmed");
+    }
+
+    for (const [id, pda] of [
+      [eventId, event],
+      [otherEventId, otherEvent],
+    ] as const) {
+      await program.methods
+        .initializeEvent(id, 5, faceValue, resaleCapBps, 500)
+        .accounts({
+          organizer: organizer.publicKey,
+          event: pda,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([organizer])
+        .rpc();
+    }
+
+    const mint = anchor.web3.Keypair.generate();
+    const [ticket] = ticketPda(mint.publicKey);
+    const tokenAccount = associatedTokenAddress(holder.publicKey, mint.publicKey);
+    await program.methods
+      .mintTicket("Solana Fall School", "https://example.test/listing.json")
+      .accounts({
+        buyer: holder.publicKey,
+        event,
+        organizer: organizer.publicKey,
+        platformConfig: platformConfigPda(),
+        platformWallet,
+        ticketAuthority: ticketAuthorityPda(),
+        mint: mint.publicKey,
+        ticket,
+        buyerTokenAccount: tokenAccount,
+        metadata: metadataPda(mint.publicKey),
+        tokenMetadataProgram: METAPLEX_TOKEN_METADATA_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([holder, mint])
+      .rpc();
+
+    const listingAccounts = { holder: holder.publicKey, event, ticket, tokenAccount };
+    const listingErrorAccounts = { ...listingAccounts, holder: nonHolder.publicKey };
+    const originalTicket = await program.account.ticket.fetch(ticket);
+    const originalTokenAccount = await provider.connection.getAccountInfo(tokenAccount);
+    assert.isNotNull(originalTokenAccount);
+    assert.equal(originalTokenAccount!.data.readBigUInt64LE(64), 1n);
+    assert.equal(originalTokenAccount!.data[108], 2, "ticket must start frozen");
+
+    await program.methods
+      .listTicket(cap.subn(1))
+      .accounts(listingAccounts)
+      .signers([holder])
+      .rpc();
+    assert.isTrue((await program.account.ticket.fetch(ticket)).listingPrice.eq(cap.subn(1)));
+
+    await program.methods
+      .listTicket(cap)
+      .accounts(listingAccounts)
+      .signers([holder])
+      .rpc();
+    assert.isTrue((await program.account.ticket.fetch(ticket)).listingPrice.eq(cap));
+
+    await expectProgramError(
+      program.methods
+        .listTicket(cap.addn(1))
+        .accounts(listingAccounts)
+        .signers([holder])
+        .rpc(),
+      "PriceExceedsCap"
+    );
+    await expectProgramError(
+      program.methods
+        .listTicket(new anchor.BN(0))
+        .accounts(listingAccounts)
+        .signers([holder])
+        .rpc(),
+      "InvalidPrice"
+    );
+    await expectProgramError(
+      program.methods
+        .listTicket(new anchor.BN(100))
+        .accounts(listingErrorAccounts)
+        .signers([nonHolder])
+        .rpc(),
+      "NotTicketHolder"
+    );
+    await expectProgramError(
+      program.methods
+        .listTicket(new anchor.BN(100))
+        .accounts({ ...listingAccounts, event: otherEvent })
+        .signers([holder])
+        .rpc(),
+      "WrongEvent"
+    );
+    await expectProgramError(
+      program.methods
+        .cancelListing()
+        .accounts({ ...listingAccounts, holder: nonHolder.publicKey })
+        .signers([nonHolder])
+        .rpc(),
+      "NotTicketHolder"
+    );
+
+    const updatedPrice = cap.subn(7);
+    await program.methods
+      .listTicket(updatedPrice)
+      .accounts(listingAccounts)
+      .signers([holder])
+      .rpc();
+    assert.isTrue(
+      (await program.account.ticket.fetch(ticket)).listingPrice.eq(updatedPrice),
+      "listing an already-listed ticket must update its price"
+    );
+
+    await program.methods
+      .cancelListing()
+      .accounts(listingAccounts)
+      .signers([holder])
+      .rpc();
+    const cancelledTicket = await program.account.ticket.fetch(ticket);
+    assert.isNull(cancelledTicket.listingPrice);
+    assert.equal(cancelledTicket.ticketNumber, originalTicket.ticketNumber);
+    assert.isTrue(cancelledTicket.faceValue.eq(originalTicket.faceValue));
+    assert.equal(cancelledTicket.resaleCount, originalTicket.resaleCount);
+    assert.equal(cancelledTicket.isUsed, originalTicket.isUsed);
+    assert.equal(cancelledTicket.usedAt.toString(), originalTicket.usedAt.toString());
+
+    const tokenAccountAfter = await provider.connection.getAccountInfo(tokenAccount);
+    assert.isNotNull(tokenAccountAfter);
+    assert.equal(tokenAccountAfter!.data.readBigUInt64LE(64), 1n);
+    assert.equal(tokenAccountAfter!.data[108], 2, "listing and cancellation must leave it frozen");
+    assert.equal(
+      tokenAccountAfter!.data.subarray(32, 64).toString("hex"),
+      originalTokenAccount!.data.subarray(32, 64).toString("hex"),
+      "listing and cancellation must not change the token-account owner"
+    );
+    assert.deepEqual(
+      tokenAccountAfter!.data,
+      originalTokenAccount!.data,
+      "listing and cancellation must not change token-account state"
+    );
+
+    const setTokenAccount = async (amount: number) => {
+      const response = await fetch(provider.connection.rpcEndpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 2,
+          method: "surfnet_setTokenAccount",
+          params: [
+            holder.publicKey.toBase58(),
+            mint.publicKey.toBase58(),
+            { amount },
+            TOKEN_PROGRAM_ID.toBase58(),
+          ],
+        }),
+      });
+      const result = (await response.json()) as { error?: { message: string } };
+      assert.isUndefined(result.error, result.error?.message);
+    };
+    await setTokenAccount(2);
+    await expectProgramError(
+      program.methods
+        .listTicket(new anchor.BN(100))
+        .accounts(listingAccounts)
+        .signers([holder])
+        .rpc(),
+      "NotTicketHolder"
+    );
+    await setTokenAccount(1);
+
+    // Surfpool's documented state cheatcode marks this minted ticket as used to exercise the guard;
+    // the check-in instruction is intentionally outside Task 2.3.
+    const ticketInfo = await provider.connection.getAccountInfo(ticket);
+    assert.isNotNull(ticketInfo);
+    const usedTicketData = Buffer.from(ticketInfo!.data);
+    usedTicketData[84] = 1;
+    const setAccountResponse = await fetch(provider.connection.rpcEndpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "surfnet_setAccount",
+        params: [
+          ticket.toBase58(),
+          {
+            data: usedTicketData.toString("hex"),
+            executable: false,
+            lamports: ticketInfo!.lamports,
+            owner: program.programId.toBase58(),
+            rentEpoch: ticketInfo!.rentEpoch,
+          },
+        ],
+      }),
+    });
+    const setAccountResult = (await setAccountResponse.json()) as {
+      error?: { message: string };
+    };
+    assert.isUndefined(setAccountResult.error, setAccountResult.error?.message);
+    await expectProgramError(
+      program.methods
+        .listTicket(new anchor.BN(100))
+        .accounts(listingAccounts)
+        .signers([holder])
+        .rpc(),
+      "TicketAlreadyUsed"
+    );
+  });
+
   it("rejects a mint beyond event capacity without changing state or payments", async () => {
     const organizer = anchor.web3.Keypair.generate();
     const buyer = anchor.web3.Keypair.generate();

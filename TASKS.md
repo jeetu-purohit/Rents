@@ -65,7 +65,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Also check and report:** that metadata creation works without a Master Edition on this version (SPEC §5.4 D2). If it doesn't, STOP and report; don't pick a fallback.
 - **Depends on:** 2.1, 0.3
 
-### 2.3 `TODO`: `list_ticket` + `cancel_listing`
+### 2.3 `DONE`: `list_ticket` + `cancel_listing`
 - **Do:** Implement per SPEC §5.2.3-4 (price/cap/ownership checks only; no token movement).
 - **Tests:** list at ≤ cap works; list at exactly cap works; list at cap+1 lamport fails `PriceExceedsCap`; price 0 fails `InvalidPrice`; non-holder fails `NotTicketHolder`; used ticket cannot be listed; relisting updates the price; cancel clears the listing; cancel by a non-holder fails.
 - **Depends on:** 2.2

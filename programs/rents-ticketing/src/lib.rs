@@ -60,6 +60,14 @@ pub mod rents_ticketing {
         instructions::mint_ticket::handler(ctx, event_name, uri)
     }
 
+    pub fn list_ticket(ctx: Context<ListTicket>, price: u64) -> Result<()> {
+        instructions::list_ticket::handler(ctx, price)
+    }
+
+    pub fn cancel_listing(ctx: Context<CancelListing>) -> Result<()> {
+        instructions::cancel_listing::handler(ctx)
+    }
+
     //transfer ticket to new buyer and enforces a price cap , and split the royalty with the organizer and to my fat wallet.
     pub fn resell_ticket(ctx: Context<ResellTicket>, sale_price_lamports: u64) -> Result<()> {
         Ok(())
