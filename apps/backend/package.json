@@ -7,6 +7,7 @@
     "db:up": "docker compose up -d mongo",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f mongo",
+    "solana:smoke": "bun run src/scripts/solana-smoke.ts",
     "predev": "bun run db:up",
     "dev": "bun run src/index.ts",
     "postdev": "bun run db:down"

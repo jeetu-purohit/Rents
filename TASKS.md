@@ -108,10 +108,11 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Done when:** `bunx tsc --noEmit` clean; backend boots and connects to Mongo; a quick script/cURL creates and reads an Event.
 - **Verified:** `bunx tsc --noEmit -p apps/backend`; backend connected to Mongo and started on port 4000; local create/read smoke test returned 201/200 with bps fields and no legacy percentage fields.
 
-### 3.2 `TODO`: `config/solana.ts`
+### 3.2 `DONE`: `config/solana.ts`
 - **Do:** Connection from env (`SOLANA_RPC_URL`), program ID from env, Anchor `Program` instance from the IDL in `packages/shared`. Add `.env.example`.
 - **Done when:** a smoke script fetches an Event or the program account without error.
 - **Depends on:** 2.7
+- **Verified:** backend typecheck passed; Devnet program-account smoke passed; package `dev` command connected to Mongo and started Express; `git diff --check` passed.
 
 ### 3.3 `TODO`: Wire `packages/shared` into backend and frontend
 - **Do:** Export IDL, generated types, and shared API DTO types (Event, Ticket, request/response shapes). Configure workspace imports so both apps import from `@rents/shared` (or whatever the package name is).

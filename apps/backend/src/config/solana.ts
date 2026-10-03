@@ -1,21 +1,26 @@
-//Connection, program IDL loader, provider 
+import { readFileSync } from "node:fs";
+import { Program, type Idl, type Provider } from "@coral-xyz/anchor";
+import { Connection, PublicKey } from "@solana/web3.js";
 
-
-import { Connection, clusterApiUrl } from "@solana/web3.js";
-
-// NOTE: swap between "localnet" and "devnet" via env var during dev vs demo
-const SOLANA_CLUSTER = process.env.SOLANA_CLUSTER || "localnet";
-
-function resolveEndpoint(): string {
-  if (SOLANA_CLUSTER === "localnet") return "http://127.0.0.1:8899";
-  if (SOLANA_CLUSTER === "devnet") return clusterApiUrl("devnet");
-  return SOLANA_CLUSTER; // allow passing a raw RPC URL directly
+function requiredEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} must be set`);
+  return value;
 }
 
-export const connection = new Connection(resolveEndpoint(), "confirmed");
+const rpcUrl = requiredEnv("SOLANA_RPC_URL");
+const programIdValue = requiredEnv("PROGRAM_ID");
 
-// TODO (next step): load the Anchor IDL + program ID here once the program
-// is built, and export a `getProgram()` helper using an AnchorProvider.
-// We'll wire this up when we get to solanaTx.service.ts / indexer.service.ts.
+export const programId = new PublicKey(programIdValue);
+export const connection = new Connection(rpcUrl, "confirmed");
 
-export const PROGRAM_ID_PLACEHOLDER = process.env.PROGRAM_ID || "";
+const sharedIdl = JSON.parse(
+  readFileSync(new URL("../../../../packages/shared/idl/rents_ticketing.json", import.meta.url), "utf8")
+) as Idl;
+
+// Anchor 0.32 reads the address from the IDL. Override only that field so the
+// environment remains the source of truth for which deployed program is used.
+const configuredIdl: Idl = { ...sharedIdl, address: programId.toBase58() };
+const readOnlyProvider: Provider = { connection };
+
+export const program = new Program(configuredIdl, readOnlyProvider);
