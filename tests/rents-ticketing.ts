@@ -236,6 +236,29 @@ describe("rents-ticketing", () => {
     return { organizer, seller, event, ticket, mint, sellerTokenAccount, faceValue };
   };
 
+  const checkInAccounts = (
+    organizer: anchor.web3.PublicKey,
+    event: anchor.web3.PublicKey,
+    ticket: anchor.web3.PublicKey,
+    mint: anchor.web3.PublicKey,
+    holder: anchor.web3.PublicKey,
+    tokenAccount: anchor.web3.PublicKey
+  ) => ({
+    organizer,
+    event,
+    ticket,
+    mint,
+    holder,
+    tokenAccount,
+    tokenProgram: TOKEN_PROGRAM_ID,
+  });
+
+  const clockUnixTimestamp = async (): Promise<bigint> => {
+    const clockInfo = await provider.connection.getAccountInfo(anchor.web3.SYSVAR_CLOCK_PUBKEY);
+    assert.isNotNull(clockInfo);
+    return clockInfo!.data.readBigInt64LE(32);
+  };
+
   it("loads the Metaplex Token Metadata program and it is executable", async () => {
     const accountInfo = await provider.connection.getAccountInfo(
       METAPLEX_TOKEN_METADATA_PROGRAM_ID
@@ -1283,6 +1306,195 @@ describe("rents-ticketing", () => {
     assert.isNotNull(sellerTokenInfo);
     assert.equal(sellerTokenInfo!.data.readBigUInt64LE(64), 1n);
     assert.equal(sellerTokenInfo!.data[108], 2);
+  });
+
+  it("allows only the event organizer to check in a listed ticket once", async () => {
+    const fixture = await createResaleFixture(41);
+    const otherEventId = new anchor.BN(42);
+    const [otherEvent] = eventPda(fixture.organizer.publicKey, otherEventId);
+    await program.methods
+      .initializeEvent(otherEventId, 10, fixture.faceValue, 11_000, 500)
+      .accounts({
+        organizer: fixture.organizer.publicKey,
+        event: otherEvent,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([fixture.organizer])
+      .rpc();
+
+    const otherOrganizer = anchor.web3.Keypair.generate();
+    const otherOrganizerFunding = await provider.connection.requestAirdrop(
+      otherOrganizer.publicKey,
+      anchor.web3.LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(otherOrganizerFunding, "confirmed");
+    const otherOrganizerEventId = new anchor.BN(43);
+    const [otherOrganizerEvent] = eventPda(otherOrganizer.publicKey, otherOrganizerEventId);
+    await program.methods
+      .initializeEvent(otherOrganizerEventId, 10, fixture.faceValue, 11_000, 500)
+      .accounts({
+        organizer: otherOrganizer.publicKey,
+        event: otherOrganizerEvent,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([otherOrganizer])
+      .rpc();
+
+    const unrelatedSigner = anchor.web3.Keypair.generate();
+    const unrelatedFunding = await provider.connection.requestAirdrop(
+      unrelatedSigner.publicKey,
+      anchor.web3.LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(unrelatedFunding, "confirmed");
+
+    const listingPrice = new anchor.BN(900_000_000);
+    await program.methods
+      .listTicket(listingPrice)
+      .accounts({
+        holder: fixture.seller.publicKey,
+        event: fixture.event,
+        ticket: fixture.ticket,
+        tokenAccount: fixture.sellerTokenAccount,
+      })
+      .signers([fixture.seller])
+      .rpc();
+
+    const accounts = checkInAccounts(
+      fixture.organizer.publicKey,
+      fixture.event,
+      fixture.ticket,
+      fixture.mint.publicKey,
+      fixture.seller.publicKey,
+      fixture.sellerTokenAccount
+    );
+    for (const unauthorized of [fixture.seller, unrelatedSigner, otherOrganizer]) {
+      await expectProgramError(
+        program.methods
+          .checkInTicket()
+          .accounts({ ...accounts, organizer: unauthorized.publicKey })
+          .signers([unauthorized])
+          .rpc(),
+        "NotEventOrganizer"
+      );
+    }
+
+    await expectProgramError(
+      program.methods
+        .checkInTicket()
+        .accounts({ ...accounts, event: otherEvent })
+        .signers([fixture.organizer])
+        .rpc(),
+      "WrongEvent"
+    );
+    let ticketState = await program.account.ticket.fetch(fixture.ticket);
+    assert.isFalse(ticketState.isUsed);
+    assert.equal(ticketState.usedAt.toString(), "0");
+    assert.isTrue(ticketState.listingPrice.eq(listingPrice));
+    assert.equal(ticketState.resaleCount, 0);
+
+    const tokenBefore = await provider.connection.getAccountInfo(fixture.sellerTokenAccount);
+    assert.isNotNull(tokenBefore);
+    assert.equal(tokenBefore!.data.readBigUInt64LE(64), 1n);
+    assert.equal(tokenBefore!.data[108], 2, "listed ticket remains frozen");
+    const clockBefore = await clockUnixTimestamp();
+    await program.methods.checkInTicket().accounts(accounts).signers([fixture.organizer]).rpc();
+    const clockAfter = await clockUnixTimestamp();
+
+    ticketState = await program.account.ticket.fetch(fixture.ticket);
+    assert.isTrue(ticketState.isUsed);
+    const usedAt = BigInt(ticketState.usedAt.toString());
+    assert.isTrue(usedAt > 0n);
+    assert.isTrue(usedAt >= clockBefore - 2n, "timestamp must be current on-chain time");
+    assert.isTrue(usedAt <= clockAfter + 2n, "timestamp must be current on-chain time");
+    assert.isTrue(ticketState.listingPrice.eq(listingPrice), "check-in preserves the listing");
+    assert.equal(ticketState.resaleCount, 0);
+    const tokenAfter = await provider.connection.getAccountInfo(fixture.sellerTokenAccount);
+    assert.isNotNull(tokenAfter);
+    assert.deepEqual(tokenAfter!.data, tokenBefore!.data, "check-in must not change token state");
+
+    await expectProgramError(
+      program.methods.checkInTicket().accounts(accounts).signers([fixture.organizer]).rpc(),
+      "TicketAlreadyUsed"
+    );
+    const ticketAfterDuplicate = await program.account.ticket.fetch(fixture.ticket);
+    assert.isTrue(ticketAfterDuplicate.isUsed);
+    assert.isTrue(ticketAfterDuplicate.usedAt.eq(ticketState.usedAt));
+    assert.isTrue(ticketAfterDuplicate.listingPrice.eq(listingPrice));
+    assert.equal(ticketAfterDuplicate.resaleCount, 0);
+  });
+
+  it("allows the organizer to check in the current owner after resale", async () => {
+    const fixture = await createResaleFixture(44);
+    const buyer = anchor.web3.Keypair.generate();
+    const buyerFunding = await provider.connection.requestAirdrop(
+      buyer.publicKey,
+      2 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(buyerFunding, "confirmed");
+    const buyerTokenAccount = associatedTokenAddress(buyer.publicKey, fixture.mint.publicKey);
+    await program.methods
+      .listTicket(fixture.faceValue)
+      .accounts({
+        holder: fixture.seller.publicKey,
+        event: fixture.event,
+        ticket: fixture.ticket,
+        tokenAccount: fixture.sellerTokenAccount,
+      })
+      .signers([fixture.seller])
+      .rpc();
+    await program.methods
+      .resellTicket()
+      .accounts({
+        buyer: buyer.publicKey,
+        event: fixture.event,
+        ticket: fixture.ticket,
+        organizer: fixture.organizer.publicKey,
+        seller: fixture.seller.publicKey,
+        platformConfig: platformConfigPda(),
+        platformWallet,
+        ticketAuthority: ticketAuthorityPda(),
+        mint: fixture.mint.publicKey,
+        sellerTokenAccount: fixture.sellerTokenAccount,
+        buyerTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([buyer])
+      .rpc();
+
+    const tokenBefore = await provider.connection.getAccountInfo(buyerTokenAccount);
+    assert.isNotNull(tokenBefore);
+    assert.equal(tokenBefore!.data.readBigUInt64LE(64), 1n);
+    assert.equal(tokenBefore!.data[108], 2);
+    const ticketBefore = await program.account.ticket.fetch(fixture.ticket);
+    assert.isFalse(ticketBefore.isUsed);
+    assert.isNull(ticketBefore.listingPrice);
+    assert.equal(ticketBefore.resaleCount, 1);
+
+    await program.methods
+      .checkInTicket()
+      .accounts(
+        checkInAccounts(
+          fixture.organizer.publicKey,
+          fixture.event,
+          fixture.ticket,
+          fixture.mint.publicKey,
+          buyer.publicKey,
+          buyerTokenAccount
+        )
+      )
+      .signers([fixture.organizer])
+      .rpc();
+
+    const ticketAfter = await program.account.ticket.fetch(fixture.ticket);
+    assert.isTrue(ticketAfter.isUsed);
+    assert.isTrue(ticketAfter.usedAt.gt(new anchor.BN(0)));
+    assert.isNull(ticketAfter.listingPrice);
+    assert.equal(ticketAfter.resaleCount, 1);
+    const tokenAfter = await provider.connection.getAccountInfo(buyerTokenAccount);
+    assert.isNotNull(tokenAfter);
+    assert.deepEqual(tokenAfter!.data, tokenBefore!.data, "check-in must not move or thaw the ticket");
   });
 
   it("rejects a mint beyond event capacity without changing state or payments", async () => {

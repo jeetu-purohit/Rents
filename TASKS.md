@@ -83,7 +83,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
   - rounding: pick a price where `p*royalty_bps/10000` has a remainder; assert `royalty + seller_proceeds == p` exactly
 - **Depends on:** 2.3
 
-### 2.5 `TODO`: `check_in_ticket`
+### 2.5 `DONE`: `check_in_ticket`
 - **Do:** Implement per SPEC §5.2.6.
 - **Tests:** organizer check-in succeeds on the frozen account and sets `is_used`/`used_at`; second check-in fails `TicketAlreadyUsed`; non-organizer signer fails `NotEventOrganizer`; ticket from a different event fails `WrongEvent`; wrong presented holder fails `NotTicketHolder`; a resold ticket can be checked in under its new owner.
 - **Depends on:** 2.2

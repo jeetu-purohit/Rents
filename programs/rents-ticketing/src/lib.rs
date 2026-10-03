@@ -75,7 +75,6 @@ pub mod rents_ticketing {
 
     //this function is called when a person does a qr checkin , checks if the ticket is present on the blockchain and check if it is already scanned or not.
     pub fn check_in_ticket(ctx: Context<CheckInTicket>) -> Result<()> {
-        //rejects the ticket if it is market true else mark it true after scanning.
-        Ok(())
+        instructions::check_in_ticket::handler(ctx)
     }
 }
