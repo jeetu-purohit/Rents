@@ -173,9 +173,10 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 
 > **Design rule for every page task:** open the matching `screen.png` **and** read the matching `code.html` before writing code (SPEC §7). Port the HTML into React + Tailwind components faithfully (structure, classes, tokens, copy); wire in real data and actions. Extra animations/graphics libraries are allowed per the SPEC §3 frontend library rule.
 
-### 5.1 `TODO`: App shell and Tailwind setup
+### 5.1 `DONE`: App shell and Tailwind setup
 - **Do:** Install and configure Tailwind CSS. Read all six `code.html` files and `DESIGN.md`; consolidate their Tailwind config (colours, fonts, radii, shadows) into the project Tailwind config and fonts/icon setup in one place. Build shared layout (navbar, footer), router, `WalletProvider` + wallet button (Phantom), env config (API URL / RPC / program ID), typed API client in `src/lib/api.ts`.
 - **Done when:** app runs, navigation works between placeholder pages that already use the shared layout, Phantom connects on devnet, lint, typecheck and `bun run build` are clean.
+- **Verified:** frontend typecheck and oxlint passed; `bun run --cwd apps/frontend build` passed with dependency browser-externalization and bundle-size warnings; backend typecheck, shared build, and `git diff --check` passed. Frontend startup and placeholder routes (landing, events, marketplace, event details, my tickets, resale, organizer, scanner) rendered with the shared shell. Human-verified Phantom detection, Devnet connection, connected address, and disconnect/reconnect in a normal browser.
 
 ### 5.2 `TODO`: Transaction helper
 - **Do:** `useSendBuilderTx()` hook: calls a `/api/tx/*` endpoint, deserializes the tx, signs with the wallet adapter, sends, confirms, calls the sync endpoint, and maps errors (including program error codes) to friendly messages. Toast/loader state.

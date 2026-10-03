@@ -43,3 +43,77 @@ export interface UserDto {
   isOrganizer: boolean;
   displayName?: string;
 }
+
+export interface PlatformConfigDto {
+  platformFeeBps: number;
+  platformWallet: string;
+}
+
+export interface TicketMetadataDto {
+  name: string;
+  symbol: "RENTS";
+  description: string;
+  image: string;
+  attributes: Array<{ trait_type: string; value: string }>;
+}
+
+export interface ApiErrorDto {
+  error: {
+    code: string;
+    message: string;
+  };
+}
+
+export interface UnsignedTransactionDto {
+  transaction: string;
+  blockhash: string;
+  lastValidBlockHeight: number;
+}
+
+export interface InitializeEventTransactionDto extends UnsignedTransactionDto {
+  eventPda: string;
+}
+
+export interface MintTicketTransactionDto extends UnsignedTransactionDto {
+  ticketPda: string;
+}
+
+export interface InitializeEventTransactionRequest {
+  organizerPubkey: string;
+  eventId: string;
+  maxTickets: number;
+  basePriceLamports: string;
+  resaleCapBps: number;
+  royaltyBps: number;
+}
+
+export interface MintTicketTransactionRequest {
+  buyerPubkey: string;
+  eventPda: string;
+  mintPubkey: string;
+  eventName: string;
+  uri: string;
+}
+
+export interface ListTicketTransactionRequest {
+  holderPubkey: string;
+  mintPubkey: string;
+  priceLamports: string;
+}
+
+export interface CancelListingTransactionRequest {
+  holderPubkey: string;
+  mintPubkey: string;
+}
+
+export interface ResellTicketTransactionRequest {
+  buyerPubkey: string;
+  sellerPubkey: string;
+  mintPubkey: string;
+}
+
+export interface CheckInTicketTransactionRequest {
+  organizerPubkey: string;
+  holderPubkey: string;
+  mintPubkey: string;
+}
