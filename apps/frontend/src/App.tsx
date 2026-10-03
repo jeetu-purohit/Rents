@@ -1,5 +1,7 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 import { WalletButton } from './components/WalletButton'
+import { DevnetBootstrap } from './components/DevnetBootstrap'
+import { DevnetMintCheck } from './components/DevnetMintCheck'
 
 const navigation = [
   { label: 'Events', href: '/events' },
@@ -90,6 +92,8 @@ function PlaceholderPage({ title, description }: { title: string; description: s
 }
 
 function RouteContent({ pathname }: { pathname: string }) {
+  if (pathname === '/devnet-bootstrap') return <DevnetBootstrap />
+  if (pathname === '/devnet-mint-check') return <DevnetMintCheck />
   if (pathname === '/') return <PlaceholderPage title="The end of scalping." description="Tickets that can't be scalped. Built on Solana for total transparency and fairness." />
   if (pathname === '/events' || pathname === '/marketplace') return <PlaceholderPage title={pathname === '/events' ? 'Upcoming events' : 'Ticket marketplace'} description="Discover and secure authentic tickets on Solana." />
   if (/^\/events\/[^/]+$/.test(pathname)) return <PlaceholderPage title="Event details" description="Event information and ticket options will appear here." />
