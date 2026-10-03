@@ -88,7 +88,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Tests:** organizer check-in succeeds on the frozen account and sets `is_used`/`used_at`; second check-in fails `TicketAlreadyUsed`; non-organizer signer fails `NotEventOrganizer`; ticket from a different event fails `WrongEvent`; wrong presented holder fails `NotTicketHolder`; a resold ticket can be checked in under its new owner.
 - **Depends on:** 2.2
 
-### 2.6 `TODO`: Program hardening pass
+### 2.6 `DONE`: Program hardening pass
 - **Do:** Review every instruction's account constraints: signer checks, PDA seed/bump validation, owner checks, missing `has_one`. Specifically confirm no instruction lets a caller make TicketAuthority sign for an unrelated mint or token account, and that thaw only happens inside `resell_ticket`. List findings; fix only clear bugs; add a regression test per fix.
 - **Done when:** `anchor test` fully green; findings written to `journal.md`.
 - **Depends on:** 2.4, 2.5
