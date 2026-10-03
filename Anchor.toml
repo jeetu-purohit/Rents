@@ -7,6 +7,9 @@ skip-lint = false
 [programs.localnet]
 rents_ticketing = "E92DmfyvMfLBWs9TqzFzN11khwxopKEvCKPoD3jY9zhw"
 
+[programs.devnet]
+rents_ticketing = "E92DmfyvMfLBWs9TqzFzN11khwxopKEvCKPoD3jY9zhw"
+
 [provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"

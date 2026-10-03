@@ -93,7 +93,7 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Done when:** `anchor test` fully green; findings written to `journal.md`.
 - **Depends on:** 2.4, 2.5
 
-### 2.7 `TODO`: Deploy to devnet + export IDL
+### 2.7 `DONE`: Deploy to devnet + export IDL
 - **Do:** Set cluster in `Anchor.toml`, deploy (human provides funded keypair; agent never touches key material), copy IDL + types to `packages/shared/idl/` and `packages/shared/src/`. Record the program ID in `journal.md` and env examples.
 - **Done when:** the program ID resolves on devnet; IDL file exists in `packages/shared`.
 - **Depends on:** 2.6
