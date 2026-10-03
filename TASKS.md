@@ -159,9 +159,10 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 
 ## Phase 4: Backend hardening (small) *(Sonnet 4.6)*
 
-### 4.1 `TODO`: Input validation and error shape
+### 4.1 `DONE`: Input validation and error shape
 - **Do:** Validate pubkeys / ids / numeric strings on every route (e.g. `zod` if already present, else minimal manual validation). Consistent JSON error shape through `errorHandler.ts`. CORS for the frontend origin.
 - **Done when:** malformed inputs return 400 with a clear message, with a few cURL examples pasted.
+- **Verified:** `bunx tsc --noEmit -p apps/backend` and `git diff --check` passed. Backend connected to Mongo and `/health`, `GET /api/events`, and a valid unsigned initialize-event builder request returned 200; malformed pubkey, amount, body, path parameter, query parameter, and JSON returned 400 with `{ error: { code, message } }`; missing Event returned the same shape with 404. Configured CORS preflight for `http://localhost:5173` returned 204 with the expected allow-origin header; a different origin received none. Baseline `docker compose ps` was blocked by sandbox Docker socket access; the authorized local service/startup check succeeded after escalation.
 
 ### 4.2 `STRETCH`: `validateWallet.ts` (wallet-signature auth)
 - Only if time remains **and** the human asks. Do not start otherwise.

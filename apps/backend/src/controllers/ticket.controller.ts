@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { Ticket } from "../models/Ticket.model";
 import { syncTicket } from "../services/indexer.service";
+import { ApiError } from "../middleware/requestValidation";
 
 export async function getTicketsByOwner(req: Request, res: Response, next: NextFunction) {
   try {
@@ -23,7 +24,7 @@ export async function getTicketsByEvent(req: Request, res: Response, next: NextF
 export async function getTicketByMint(req: Request, res: Response, next: NextFunction) {
   try {
     const ticket = await Ticket.findOne({ mintAddress: req.params.mint });
-    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+    if (!ticket) throw new ApiError("Ticket not found", 404, "NOT_FOUND");
     res.json(ticket);
   } catch (err) {
     next(err);
