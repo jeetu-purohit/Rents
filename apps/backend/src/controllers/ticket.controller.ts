@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { Ticket } from "../models/Ticket.model";
+import { syncTicket } from "../services/indexer.service";
 
 export async function getTicketsByOwner(req: Request, res: Response, next: NextFunction) {
   try {
@@ -12,7 +13,7 @@ export async function getTicketsByOwner(req: Request, res: Response, next: NextF
 
 export async function getTicketsByEvent(req: Request, res: Response, next: NextFunction) {
   try {
-    const tickets = await Ticket.find({ eventOnChainId: req.params.eventId });
+    const tickets = await Ticket.find({ eventPda: req.params.eventId });
     res.json(tickets);
   } catch (err) {
     next(err);
@@ -29,23 +30,21 @@ export async function getTicketByMint(req: Request, res: Response, next: NextFun
   }
 }
 
-export async function buildMintTransaction(req: Request, res: Response, next: NextFunction) {
+export async function getActiveListings(_req: Request, res: Response, next: NextFunction) {
   try {
-    // TODO (solanaTx.service.ts): build the mint_ticket instruction using
-    // Anchor program + Metaplex CPI accounts, return a base64 unsigned tx
-    // for the frontend to sign with Phantom and submit.
-    res.status(501).json({ message: "buildMintTransaction not implemented yet" });
+    const tickets = await Ticket.find({
+      listingPriceLamports: { $exists: true, $ne: null },
+    }).sort({ lastSyncedAt: -1 });
+    res.json(tickets);
   } catch (err) {
     next(err);
   }
 }
 
-export async function buildResellTransaction(req: Request, res: Response, next: NextFunction) {
+export async function syncTicketByMint(req: Request, res: Response, next: NextFunction) {
   try {
-    // TODO (solanaTx.service.ts): build the resell_ticket instruction,
-    // enforcing price cap client-side too (chain is the real enforcer),
-    // return a base64 unsigned tx.
-    res.status(501).json({ message: "buildResellTransaction not implemented yet" });
+    const ticket = await syncTicket(typeof req.params.mint === "string" ? req.params.mint : "");
+    res.json(ticket);
   } catch (err) {
     next(err);
   }

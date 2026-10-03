@@ -103,48 +103,57 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 
 ## Phase 3: Backend foundation *(Sonnet 4.6)*
 
-### 3.1 `TODO`: Models migrated to SPEC
+### 3.1 `DONE`: Models migrated to SPEC
 - **Do:** Update `Event`, `Ticket`, `User` models to SPEC §6.1 (bps fields, `eventPda`, `ticketPda`, listing fields). Update controllers that referenced old field names.
 - **Done when:** `bunx tsc --noEmit` clean; backend boots and connects to Mongo; a quick script/cURL creates and reads an Event.
+- **Verified:** `bunx tsc --noEmit -p apps/backend`; backend connected to Mongo and started on port 4000; local create/read smoke test returned 201/200 with bps fields and no legacy percentage fields.
 
-### 3.2 `TODO`: `config/solana.ts`
+### 3.2 `DONE`: `config/solana.ts`
 - **Do:** Connection from env (`SOLANA_RPC_URL`), program ID from env, Anchor `Program` instance from the IDL in `packages/shared`. Add `.env.example`.
 - **Done when:** a smoke script fetches an Event or the program account without error.
 - **Depends on:** 2.7
+- **Verified:** backend typecheck passed; Devnet program-account smoke passed; package `dev` command connected to Mongo and started Express; `git diff --check` passed.
 
-### 3.3 `TODO`: Wire `packages/shared` into backend and frontend
+### 3.3 `DONE`: Wire `packages/shared` into backend and frontend
 - **Do:** Export IDL, generated types, and shared API DTO types (Event, Ticket, request/response shapes). Configure workspace imports so both apps import from `@rents/shared` (or whatever the package name is).
 - **Done when:** both apps typecheck while importing a shared type.
+- **Verified:** shared package build passed; backend and frontend typechecks passed with workspace imports; backend Devnet smoke passed using the IDL package export.
 
-### 3.4 `TODO`: `solanaTx.service.ts`: `initialize-event` and `mint` builders
+### 3.4 `DONE`: `solanaTx.service.ts`: `initialize-event` and `mint` builders
 - **Do:** Build base64 **unsigned** txs with the correct accounts (derive PDAs, include PlatformConfig and the platform wallet). For `mint`, the client generates the fresh mint keypair and sends its public key to the backend; the backend uses that public key when constructing the transaction, and the frontend/script adds the mint-keypair signature plus the user's wallet signature before submission. The backend must never sign the transaction. Routes `POST /api/tx/initialize-event`, `/api/tx/mint`.
 - **Done when:** a script takes the returned unsigned tx, signs it with the test wallet(s) plus the fresh mint keypair where required, sends to localnet/devnet, and confirms; the ticket exists on-chain.
 - **Depends on:** 3.2
+- **Verified:** local integration smoke called both API routes, signed only in the client script, confirmed both transactions, and verified Event fields plus Ticket PDA, mint supply 1, and buyer token ownership; backend typecheck, shared build, and `git diff --check` passed.
 
-### 3.5 `TODO`: Builders for `list`, `cancel-listing`, `resell`, `check-in`
+### 3.5 `DONE`: Builders for `list`, `cancel-listing`, `resell`, `check-in`
 - **Do:** Same pattern as 3.4. Replace the old 501 stubs and route names.
 - **Done when:** an end-to-end script (separate keypairs for organizer / seller / buyer) runs create → mint → list → resell → check-in through the API builders and succeeds.
 - **Depends on:** 3.4
+- **Verified:** backend typecheck and shared build passed; local API-to-validator smoke completed initialize → mint → list → cancel-listing → relist → resell → check-in, verified buyer ownership, listing cleared, resale count 1, frozen buyer ATA, and duplicate check-in rejected with `TicketAlreadyUsed` (6012); `git diff --check` passed.
 
-### 3.6 `TODO`: Indexer (polling)
+### 3.6 `DONE`: Indexer (polling)
 - **Do:** `indexer.service.ts`: on an interval, `program.account.ticket.all()` + event accounts → upsert Mongo. Add `syncTicket(mint)` and `POST /api/tickets/:mint/sync`. Start the indexer from `index.ts` behind an env flag. Add `GET /api/tickets/listings`.
 - **Done when:** after the 3.5 script, Mongo reflects the correct owner, listing, and `isCheckedIn` without manual edits.
 - **Depends on:** 3.5
+- **Verified:** `bunx tsc --noEmit -p apps/backend`, shared build, and `git diff --check` passed; backend started with indexing disabled and enabled; API/local-validator/Mongo smoke confirmed polling and explicit sync cache fields, owner and check-in state, repeated-poll deduplication, sync 400/404 behavior without fake rows, and listings reflected list/resale state.
 
-### 3.7 `TODO`: Metadata endpoint
+### 3.7 `DONE`: Metadata endpoint
 - **Do:** `GET /api/metadata/:mint` returns Metaplex-standard JSON (name, symbol, description, image, attributes: event, venue, date, ticket #). `metadata.service.ts` builds it from Event + Ticket.
 - **Done when:** a minted ticket's URI resolves and the JSON validates against the standard fields.
 - **Depends on:** 3.1
+- **Verified:** backend typecheck, shared build, and `git diff --check` passed; local API/validator/Mongo lifecycle smoke minted with the metadata endpoint URI and verified HTTP 200, Metaplex fields/attributes, Event association, on-chain ticket number, JSON serialization, and 400/404 responses for invalid/unknown mint and missing Event metadata; backend health returned `{"status":"ok"}`.
 
-### 3.8 `TODO`: `/api/checkin/verify` reads the chain first
+### 3.8 `DONE`: `/api/checkin/verify` reads the chain first
 - **Do:** Per SPEC §6.2/§8: fetch Ticket + token account owner from chain; compare to QR payload; cache only on RPC failure.
 - **Done when:** manual tests: valid ticket OK; used ticket rejected; wrong event rejected; spoofed owner rejected.
 - **Depends on:** 3.6
+- **Verified:** backend typecheck, shared build, and `git diff --check` passed; full local lifecycle smoke verified valid live owner, used/wrong-Event/spoofed-owner/chain-missing rejections despite cache contents, stale cached owner ignored, and unreachable-RPC cache fallback accepted; backend health returned `{"status":"ok"}`.
 
-### 3.9 `TODO`: `GET /api/platform`
+### 3.9 `DONE`: `GET /api/platform`
 - **Do:** Read PlatformConfig from chain and return `{ platformFeeBps, platformWallet }` (short in-memory cache OK). The frontend uses it to show the fee as a separate line before purchase.
 - **Done when:** the endpoint returns the on-chain values after a fee update.
 - **Depends on:** 3.2
+- **Verified:** `bunx tsc --noEmit -p apps/backend`, `bun run --cwd packages/shared build`, and `git diff --check` passed; full local API/validator lifecycle smoke matched `/api/platform` to the chain before and after an admin fee update, confirmed the wallet stayed the same, and restored the original fee; backend health returned `{"status":"ok"}`.
 
 ---
 
