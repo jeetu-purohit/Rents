@@ -183,8 +183,9 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Done when:** a throwaway button successfully completes a mint on devnet.
 - **Depends on:** 3.4
 
-### 5.3 `TODO`: Landing + Explore Events
+### 5.3 `DONE`: Landing + Explore Events
 - **Design:** `landing_page_rents`, `explore_events_rents`. Data from `GET /api/events`. Loading/empty/error states.
+- **Verified:** The landing and Explore Events routes rendered in the running frontend; Explore Events displayed real Event DTOs from `/api/events`, and card links opened the existing Event Details placeholder. Loading, empty, and API error states were manually verified using temporary local responses that were removed after the check. Desktop and mobile renders were inspected. Frontend typecheck, oxlint, production build, backend typecheck, shared build, and `git diff --check` passed. Build retains existing wallet dependency browser-externalization and bundle-size warnings.
 
 ### 5.4 `TODO`: Event Details + Buy
 - **Design:** `event_details_rents`. Buy button → 5.2 hook; shows remaining tickets, price in SOL with the platform fee as a separate line (from `/api/platform`), resale-cap/royalty explainer; list of active resale listings for this event with Buy buttons (calls `resell`).

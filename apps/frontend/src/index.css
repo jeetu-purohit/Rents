@@ -126,6 +126,30 @@
   background-size: 4px 4px;
 }
 
+.perforated-edge-right {
+  mask-image: radial-gradient(circle at 100% 50%, transparent 8px, black 9px);
+  -webkit-mask-image: radial-gradient(circle at 100% 50%, transparent 8px, black 9px);
+  mask-size: 100% 24px;
+  -webkit-mask-size: 100% 24px;
+  mask-repeat: repeat-y;
+  -webkit-mask-repeat: repeat-y;
+}
+
+.perforated-edge-left {
+  mask-image: radial-gradient(circle at 0% 50%, transparent 8px, black 9px);
+  -webkit-mask-image: radial-gradient(circle at 0% 50%, transparent 8px, black 9px);
+  mask-size: 100% 24px;
+  -webkit-mask-size: 100% 24px;
+  mask-repeat: repeat-y;
+  -webkit-mask-repeat: repeat-y;
+}
+
+.ticket-stub {
+  position: relative;
+  background: radial-gradient(circle at right center, transparent 10px, var(--color-inverse-surface) 10.5px) top right / 100% 100% no-repeat;
+  filter: drop-shadow(-2px 2px 4px rgb(0 0 0 / 50%));
+}
+
 .marquee-glow {
   box-shadow: var(--shadow-marquee);
 }

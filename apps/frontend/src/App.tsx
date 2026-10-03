@@ -2,6 +2,8 @@ import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 import { WalletButton } from './components/WalletButton'
 import { DevnetBootstrap } from './components/DevnetBootstrap'
 import { DevnetMintCheck } from './components/DevnetMintCheck'
+import { ExploreEventsPage } from './components/ExploreEventsPage'
+import { LandingPage } from './components/LandingPage'
 
 const navigation = [
   { label: 'Events', href: '/events' },
@@ -94,8 +96,9 @@ function PlaceholderPage({ title, description }: { title: string; description: s
 function RouteContent({ pathname }: { pathname: string }) {
   if (pathname === '/devnet-bootstrap') return <DevnetBootstrap />
   if (pathname === '/devnet-mint-check') return <DevnetMintCheck />
-  if (pathname === '/') return <PlaceholderPage title="The end of scalping." description="Tickets that can't be scalped. Built on Solana for total transparency and fairness." />
-  if (pathname === '/events' || pathname === '/marketplace') return <PlaceholderPage title={pathname === '/events' ? 'Upcoming events' : 'Ticket marketplace'} description="Discover and secure authentic tickets on Solana." />
+  if (pathname === '/') return <LandingPage />
+  if (pathname === '/events') return <ExploreEventsPage />
+  if (pathname === '/marketplace') return <PlaceholderPage title="Ticket marketplace" description="Discover and secure authentic tickets on Solana." />
   if (/^\/events\/[^/]+$/.test(pathname)) return <PlaceholderPage title="Event details" description="Event information and ticket options will appear here." />
   if (pathname === '/my-tickets') return <PlaceholderPage title="My stubs" description="Your RENTS tickets will appear here when you connect your wallet." />
   if (/^\/my-tickets\/[^/]+\/resell$/.test(pathname)) return <PlaceholderPage title="List ticket" description="Set a resale price within the event's on-chain price cap." />
