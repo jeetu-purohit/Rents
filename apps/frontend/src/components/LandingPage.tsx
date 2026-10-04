@@ -1,9 +1,9 @@
 export function LandingPage() {
   return (
     <div className="flex flex-1 flex-col">
-      <section className="flex min-h-[819px] w-full flex-1 items-center justify-center px-margin-mobile py-margin-desktop md:px-margin-desktop">
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col shadow-2xl md:flex-row">
-          <div className="ticket-paper perforated-edge-right relative flex min-h-[400px] w-full flex-col justify-between rounded-l-lg p-stub-padding text-background md:w-2/3">
+      <section className="flex min-h-0 w-full flex-1 items-center justify-center px-margin-mobile py-base lg:min-h-[819px] lg:px-margin-desktop lg:py-margin-desktop">
+        <div className="relative mx-auto flex w-full max-w-6xl flex-col shadow-2xl lg:flex-row">
+          <div className="ticket-paper perforated-edge-right relative flex min-h-[400px] w-full flex-col justify-between rounded-l-lg p-stub-padding text-background lg:w-2/3">
             <div>
               <p className="mb-4 font-section-label text-section-label text-outline">ADMIT ONE • GENERAL ADMISSION</p>
               <h1 className="mb-2 font-display text-headline-xl leading-none text-on-secondary">THE END OF<br />SCALPING.</h1>
@@ -23,7 +23,7 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="ticket-paper perforated-edge-left relative flex w-full flex-col items-center justify-center border-l-2 border-dashed border-outline-variant p-stub-padding md:w-1/3">
+          <div className="ticket-paper perforated-edge-left relative flex w-full flex-col items-center justify-center border-t-2 border-dashed border-outline-variant p-stub-padding lg:w-1/3 lg:border-l-2 lg:border-t-0">
             <div className="mb-6 flex h-32 w-32 items-center justify-center bg-background" aria-label="Ticket QR symbol">
               <span className="material-symbols-outlined text-4xl text-secondary-fixed" aria-hidden="true">qr_code_2</span>
             </div>

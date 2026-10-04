@@ -1,7 +1,5 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 import { WalletButton } from './components/WalletButton'
-import { DevnetBootstrap } from './components/DevnetBootstrap'
-import { DevnetMintCheck } from './components/DevnetMintCheck'
 import { ExploreEventsPage } from './components/ExploreEventsPage'
 import { EventDetailsPage } from './components/EventDetailsPage'
 import { LandingPage } from './components/LandingPage'
@@ -12,7 +10,6 @@ import { ScannerPage } from './components/ScannerPage'
 
 const navigation = [
   { label: 'Events', href: '/events' },
-  { label: 'Marketplace', href: '/marketplace' },
   { label: 'My Stubs', href: '/my-tickets' },
   { label: 'Organizer', href: '/organizer' },
   { label: 'Scanner', href: '/scanner' },
@@ -52,7 +49,7 @@ function AppShell({ children, pathname }: { children: ReactNode; pathname: strin
       <header className="sticky top-0 z-20 border-b border-dashed border-outline-variant bg-background">
         <nav aria-label="Main navigation" className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 px-margin-mobile py-base md:px-margin-desktop">
           <AppLink href="/" className="font-display text-headline-lg tracking-widest text-primary">RENTS</AppLink>
-          <div className="order-3 flex w-full items-center justify-center gap-5 overflow-x-auto pb-1 sm:order-none sm:w-auto sm:pb-0 md:gap-gutter">
+          <div className="order-3 flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:order-none sm:w-auto sm:flex-nowrap sm:gap-5 md:gap-gutter">
             {navigation.map((item) => (
               <AppLink key={item.href} href={item.href} className={`whitespace-nowrap font-section-label text-section-label uppercase transition-colors hover:text-primary ${pathname === item.href || (item.href === '/events' && pathname.startsWith('/events/')) ? 'border-b-2 border-primary pb-1 text-primary' : 'text-on-surface-variant'}`}>
                 {item.label}
@@ -79,32 +76,19 @@ function AppShell({ children, pathname }: { children: ReactNode; pathname: strin
   )
 }
 
-function PlaceholderPage({ title, description }: { title: string; description: string }) {
+function NotFoundPage() {
   return (
-    <section className="flex flex-1 flex-col justify-center gap-gutter">
-      <div className="border-b border-dashed border-outline-variant pb-gutter">
-        <p className="mb-2 font-section-label text-section-label uppercase tracking-widest text-primary">RENTS · DEVNET</p>
-        <h1 className="font-display text-headline-xl uppercase text-on-surface">{title}</h1>
-        <p className="mt-4 max-w-2xl font-body text-body-md text-on-surface-variant">{description}</p>
-      </div>
-      <div className="ticket-paper relative flex min-h-48 flex-col justify-between border border-outline-variant p-stub-padding text-background md:flex-row md:items-center">
-        <div>
-          <p className="font-section-label text-section-label uppercase tracking-widest text-outline">ADMIT ONE · RENTS TICKETING</p>
-          <h2 className="mt-2 font-display text-headline-lg uppercase">Your next event belongs here.</h2>
-        </div>
-        <span className="material-symbols-outlined mt-6 text-5xl text-primary-container md:mt-0" aria-hidden="true">confirmation_number</span>
-        <span className="pointer-events-none absolute inset-y-0 right-1/3 hidden border-l-2 border-dashed border-outline-variant md:block" aria-hidden="true" />
-      </div>
+    <section className="ticket-paper mx-auto flex min-h-64 w-full max-w-3xl flex-col items-center justify-center gap-4 border border-dashed border-outline-variant p-6 text-center text-background sm:p-stub-padding">
+      <span className="material-symbols-outlined text-5xl text-outline" aria-hidden="true">confirmation_number</span>
+      <h1 className="font-display text-headline-lg uppercase">Page not found</h1>
+      <p className="max-w-lg font-body text-body-md">This address does not match a RENTS page.</p>
     </section>
   )
 }
 
 function RouteContent({ pathname }: { pathname: string }) {
-  if (pathname === '/devnet-bootstrap') return <DevnetBootstrap />
-  if (pathname === '/devnet-mint-check') return <DevnetMintCheck />
   if (pathname === '/') return <LandingPage />
   if (pathname === '/events') return <ExploreEventsPage />
-  if (pathname === '/marketplace') return <PlaceholderPage title="Ticket marketplace" description="Discover and secure authentic tickets on Solana." />
   const eventDetailsMatch = pathname.match(/^\/events\/([^/]+)$/)
   if (eventDetailsMatch) return <EventDetailsPage id={decodeURIComponent(eventDetailsMatch[1])} />
   if (pathname === '/my-tickets') return <MyStubsPage />
@@ -112,8 +96,7 @@ function RouteContent({ pathname }: { pathname: string }) {
   if (resaleMatch) return <ListForResalePage mint={decodeURIComponent(resaleMatch[1])} />
   if (pathname === '/organizer') return <OrganizerDashboardPage />
   if (pathname === '/scanner') return <ScannerPage />
-  if (pathname === '/organizer/scan') return <PlaceholderPage title="Gate scan" description="Organizer ticket scanning will appear here." />
-  return <PlaceholderPage title="Page not found" description="This route is not part of RENTS." />
+  return <NotFoundPage />
 }
 
 function App() {

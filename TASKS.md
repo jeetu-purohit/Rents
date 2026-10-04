@@ -212,8 +212,9 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Verified:** User locally scanned a real My Stubs QR with Phantom organizer wallet, verified the ticket, signed check-in, and observed the used state. Independently verified finalized Devnet transaction `TgHzkYHp4B9PURpjLXqpfdHCxtGqiiokeCiyyTa2GBSKaAD8h9eYBLaU3ZGhGokqQa2PGcRQDcJYAQFeyGTSaqW`: mint `6WVpiWVkzgyR7JVM6GYSGgei52qzh39pjhyREKUxnVLu`, Ticket PDA `GWAnNqMzTTVpgCsoFDhWbCSXTZ5CPNJXxpMwq2GebMqs`, Event PDA `7SQJ2U2Qf9VE9mxAssHTeACBmVsnJ2gKf2hsacYNHBgZ`, owner/event organizer `2NkWubGZXhkgrGmEQ28i1SnzteLEdwPe66fQsV7JtF48`, ticket number 1, face value 1,000,000,000 lamports, supply 1, frozen token account, and on-chain `isUsed = true`. Existing chain-first verification service now rejects the ticket with 409 `Already checked in`. Frontend/backend/shared checks passed; installed oxlint passed after `bunx oxlint` hit the Bun temp-directory issue. Build retains existing wallet browser-externalization and large-chunk warnings.
 - **Depends on:** 3.8
 
-### 5.9 `TODO`: Frontend polish pass
+### 5.9 `DONE`: Frontend polish pass
 - **Do:** responsive check at mobile width, empty states, consistent loading, remove debug UI. No new features.
+- **Verified:** Removed temporary Devnet bootstrap/mint-check routes and obsolete marketplace/scan placeholders; corrected small-screen navigation and landing-ticket layout; disabled organizer event creation while data or transaction work is pending. Inspected `/`, `/events`, `/events/:id`, `/my-tickets`, resale, `/organizer`, and `/scanner` at 390px, 768px, and 1440px with no horizontal overflow. Empty/loading/error/disconnected states were reviewed; API-dependent routes rendered their error states because the local backend was unavailable. Frontend/backend typechecks, installed oxlint, production build, shared build, and `git diff --check` passed. `bunx oxlint` hit Bun temp-directory access; installed binary passed. Build retains wallet browser-externalization and large-chunk warnings.
 
 ---
 
