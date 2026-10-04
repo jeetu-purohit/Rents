@@ -5,6 +5,8 @@ import { DevnetMintCheck } from './components/DevnetMintCheck'
 import { ExploreEventsPage } from './components/ExploreEventsPage'
 import { EventDetailsPage } from './components/EventDetailsPage'
 import { LandingPage } from './components/LandingPage'
+import { MyStubsPage } from './components/MyStubsPage'
+import { ListForResalePage } from './components/ListForResalePage'
 
 const navigation = [
   { label: 'Events', href: '/events' },
@@ -102,8 +104,9 @@ function RouteContent({ pathname }: { pathname: string }) {
   if (pathname === '/marketplace') return <PlaceholderPage title="Ticket marketplace" description="Discover and secure authentic tickets on Solana." />
   const eventDetailsMatch = pathname.match(/^\/events\/([^/]+)$/)
   if (eventDetailsMatch) return <EventDetailsPage id={decodeURIComponent(eventDetailsMatch[1])} />
-  if (pathname === '/my-tickets') return <PlaceholderPage title="My stubs" description="Your RENTS tickets will appear here when you connect your wallet." />
-  if (/^\/my-tickets\/[^/]+\/resell$/.test(pathname)) return <PlaceholderPage title="List ticket" description="Set a resale price within the event's on-chain price cap." />
+  if (pathname === '/my-tickets') return <MyStubsPage />
+  const resaleMatch = pathname.match(/^\/my-tickets\/([^/]+)\/resell$/)
+  if (resaleMatch) return <ListForResalePage mint={decodeURIComponent(resaleMatch[1])} />
   if (pathname === '/organizer') return <PlaceholderPage title="Box office" description="Organizer event tools will appear here." />
   if (pathname === '/organizer/scan') return <PlaceholderPage title="Gate scan" description="Organizer ticket scanning will appear here." />
   return <PlaceholderPage title="Page not found" description="This route is not part of RENTS." />

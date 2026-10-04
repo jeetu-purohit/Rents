@@ -178,10 +178,11 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Done when:** app runs, navigation works between placeholder pages that already use the shared layout, Phantom connects on devnet, lint, typecheck and `bun run build` are clean.
 - **Verified:** frontend typecheck and oxlint passed; `bun run --cwd apps/frontend build` passed with dependency browser-externalization and bundle-size warnings; backend typecheck, shared build, and `git diff --check` passed. Frontend startup and placeholder routes (landing, events, marketplace, event details, my tickets, resale, organizer, scanner) rendered with the shared shell. Human-verified Phantom detection, Devnet connection, connected address, and disconnect/reconnect in a normal browser.
 
-### 5.2 `TODO`: Transaction helper
+### 5.2 `DONE`: Transaction helper
 - **Do:** `useSendBuilderTx()` hook: calls a `/api/tx/*` endpoint, deserializes the tx, signs with the wallet adapter, sends, confirms, calls the sync endpoint, and maps errors (including program error codes) to friendly messages. Toast/loader state.
 - **Done when:** a throwaway button successfully completes a mint on devnet.
 - **Depends on:** 3.4
+- **Verified:** Existing Devnet mint transaction `2YopTtivDo32NXX5oWhGA9WUa1Er37kztgbf8tc5TsUgKWbe3q3JPuQ3U3qN58yzMubRyzuLm8RcG7uJt1mjJXM2` confirmed for mint `ETHWqPYS63dwLUSEsa9QBiaFz5F5bpVq2ZEsrPnGjpcG`, Ticket PDA `12APD5aibFhew1pz4JBnBLNfcdVH28ooWrPWHGv4GWG7`. After restarting the pre-existing Bun watcher/child that had started before the Helius `.env` update, `POST /api/tickets/:mint/sync` returned 200; Mongo remained at exactly one matching Ticket, and the owner API returned it with the expected owner/Event PDA. The route adds no RPC calls and delegates to `syncTicket()` using the shared Solana config. Health/platform returned 200; Helius host and Devnet slot were confirmed. Frontend typecheck, installed oxlint binary, production build, backend typecheck, shared build, and `git diff --check` passed. The old HTTP 429 body did not identify an RPC method; prior diagnostics implicated `getTokenLargestAccounts`. Existing build warnings remain.
 
 ### 5.3 `DONE`: Landing + Explore Events
 - **Design:** `landing_page_rents`, `explore_events_rents`. Data from `GET /api/events`. Loading/empty/error states.
@@ -192,12 +193,14 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Depends on:** 5.2, 3.5, 3.6
 - **Verified:** Live Event Details loaded the selected Event from the API and its ticket availability, face price, cap, and royalty from Devnet chain state; platform fee came from `/api/platform`; listings came from the existing listings API and were filtered by Event PDA (the selected Event currently has no active listings). Missing Event rendered the not-found state. Purchase controls call `useSendBuilderTx()` for `mint` and `resell`. Desktop and mobile layouts were inspected. Frontend typecheck, oxlint, frontend build, backend typecheck, shared build, and `git diff --check` passed. `bunx oxlint` could not access Bun's temporary directory in this environment, so the installed local oxlint binary was used successfully. Build retains existing wallet browser-externalization and bundle-size warnings.
 
-### 5.5 `TODO`: My Stubs + QR
+### 5.5 `DONE`: My Stubs + QR
 - **Design:** `my_stubs_rents`. Tickets from `/api/tickets/owner/:pubkey`; QR per SPEC §8 via `qrcode.react`; status chips (valid / listed / used).
+- **Verified:** Disconnected state rendered in the local frontend. The live owner API returned the existing Devnet ticket with matching mint, Ticket PDA, Event PDA, and owner; Mongo contained exactly one matching document. The ticket data maps to the VALID chip. QR source serializes exactly `mint`, `owner`, and `eventPda`, matching the current `/api/checkin/verify` validator, and renders with `qrcode.react`. Empty-owner API response was `200 []`; error, wallet-change clearing, and listed/used chip branches were reviewed in code. Frontend typecheck, installed oxlint binary, production build, backend typecheck, shared build, and `git diff --check` passed. Phantom-backed populated rendering, account switching, and a mobile viewport remain human-only checks because the in-app browser has no Phantom/viewport control. The production build retains existing wallet browser-externalization and bundle-size warnings.
 
-### 5.6 `TODO`: List for Resale
+### 5.6 `DONE`: List for Resale
 - **Design:** `list_for_resale_rents`. Price input with live cap calculation ("max X SOL"), disabled submit above cap, royalty/proceeds preview; cancel listing action.
 - **Depends on:** 5.5
+- **Verified:** Added resale listing form and owner cancellation controls using the existing typed builders and `useSendBuilderTx()`. Read the existing ticket and Event directly from Devnet: face value 10,000,000 lamports, cap 11,000 bps, royalty 500 bps, unused and unlisted. List at 10,500,000 lamports and cancel builder transactions both simulated successfully for the ticket’s current owner; no transaction was submitted. Loading/error/disconnected states rendered in the local browser; desktop/mobile responsive classes and wallet-change isolation were reviewed. Frontend typecheck, installed oxlint binary, frontend build, backend typecheck, shared build, and `git diff --check` passed. Phantom-signed list/cancel and the HTTP API route remain human-only/unverified here: Phantom is unavailable in the in-app browser and the local backend could not start because Mongo/Docker access was unavailable. Existing build warnings remain.
 
 ### 5.7 `TODO`: Organizer Dashboard + Create Event
 - **Design:** `organizer_dashboard_rents`. Create-event form → `POST /api/events` (metadata) + `initialize-event` tx (order and failure handling documented: no orphan Mongo rows if the chain tx fails); dashboard stats (tickets sold, revenue, royalties earned from resales).
