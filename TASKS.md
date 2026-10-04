@@ -202,8 +202,9 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Depends on:** 5.5
 - **Verified:** Added resale listing form and owner cancellation controls using the existing typed builders and `useSendBuilderTx()`. Read the existing ticket and Event directly from Devnet: face value 10,000,000 lamports, cap 11,000 bps, royalty 500 bps, unused and unlisted. List at 10,500,000 lamports and cancel builder transactions both simulated successfully for the ticket’s current owner; no transaction was submitted. Loading/error/disconnected states rendered in the local browser; desktop/mobile responsive classes and wallet-change isolation were reviewed. Frontend typecheck, installed oxlint binary, frontend build, backend typecheck, shared build, and `git diff --check` passed. Phantom-signed list/cancel and the HTTP API route remain human-only/unverified here: Phantom is unavailable in the in-app browser and the local backend could not start because Mongo/Docker access was unavailable. Existing build warnings remain.
 
-### 5.7 `TODO`: Organizer Dashboard + Create Event
+### 5.7 `DONE`: Organizer Dashboard + Create Event
 - **Design:** `organizer_dashboard_rents`. Create-event form → `POST /api/events` (metadata) + `initialize-event` tx (order and failure handling documented: no orphan Mongo rows if the chain tx fails); dashboard stats (tickets sold, revenue, royalties earned from resales).
+- **Verified:** User confirmed local verification of the organizer dashboard and create-event flow. Resale royalty instruction matching was corrected to Anchor's decoded `resell_ticket` name and verified against the local resale lifecycle; code ordering confirms chain initialization before Mongo metadata persistence. Frontend/backend/shared checks passed; installed oxlint passed after `bunx oxlint` hit the Bun temporary-directory issue. Production build retains browser-externalization and bundle-size warnings.
 
 ### 5.8 `TODO`: Scanner page
 - **No design.** Camera QR scan → verify API → show result → organizer-signs check-in tx. Large clear ✅/❌ states.

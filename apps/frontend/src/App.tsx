@@ -7,6 +7,7 @@ import { EventDetailsPage } from './components/EventDetailsPage'
 import { LandingPage } from './components/LandingPage'
 import { MyStubsPage } from './components/MyStubsPage'
 import { ListForResalePage } from './components/ListForResalePage'
+import { OrganizerDashboardPage } from './components/OrganizerDashboardPage'
 
 const navigation = [
   { label: 'Events', href: '/events' },
@@ -107,7 +108,7 @@ function RouteContent({ pathname }: { pathname: string }) {
   if (pathname === '/my-tickets') return <MyStubsPage />
   const resaleMatch = pathname.match(/^\/my-tickets\/([^/]+)\/resell$/)
   if (resaleMatch) return <ListForResalePage mint={decodeURIComponent(resaleMatch[1])} />
-  if (pathname === '/organizer') return <PlaceholderPage title="Box office" description="Organizer event tools will appear here." />
+  if (pathname === '/organizer') return <OrganizerDashboardPage />
   if (pathname === '/organizer/scan') return <PlaceholderPage title="Gate scan" description="Organizer ticket scanning will appear here." />
   return <PlaceholderPage title="Page not found" description="This route is not part of RENTS." />
 }
