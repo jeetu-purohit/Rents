@@ -27,6 +27,25 @@ export class ApiError extends Error {
   }
 }
 
+export interface CheckInQrPayload {
+  mint: string
+  owner: string
+  eventPda: string
+}
+
+export interface CheckInVerificationResponse {
+  valid: true
+  ticket: {
+    mintAddress: string
+    ticketPda: string
+    eventPda: string
+    ownerPubkey: string
+    faceValueLamports: string
+    isCheckedIn: boolean
+    resaleCount: number
+  }
+}
+
 function isApiError(value: unknown): value is ApiErrorDto {
   if (typeof value !== 'object' || value === null || !('error' in value)) return false
   const error = value.error
@@ -64,6 +83,8 @@ export const api = {
   syncTicket: (mint: string) => request<TicketDto>(`/tickets/${encodeURIComponent(mint)}/sync`, { method: 'POST' }),
   getPlatform: () => request<PlatformConfigDto>('/platform'),
   getMetadata: (mint: string) => request<TicketMetadataDto>(`/metadata/${encodeURIComponent(mint)}`),
+  verifyCheckIn: (payload: CheckInQrPayload) =>
+    request<CheckInVerificationResponse>('/checkin/verify', jsonBody(payload)),
   buildInitializeEvent: (input: InitializeEventTransactionRequest) =>
     request<InitializeEventTransactionDto>('/tx/initialize-event', jsonBody(input)),
   buildMintTicket: (input: MintTicketTransactionRequest) =>

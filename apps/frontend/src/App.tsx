@@ -8,12 +8,14 @@ import { LandingPage } from './components/LandingPage'
 import { MyStubsPage } from './components/MyStubsPage'
 import { ListForResalePage } from './components/ListForResalePage'
 import { OrganizerDashboardPage } from './components/OrganizerDashboardPage'
+import { ScannerPage } from './components/ScannerPage'
 
 const navigation = [
   { label: 'Events', href: '/events' },
   { label: 'Marketplace', href: '/marketplace' },
   { label: 'My Stubs', href: '/my-tickets' },
   { label: 'Organizer', href: '/organizer' },
+  { label: 'Scanner', href: '/scanner' },
 ]
 
 function usePathname() {
@@ -109,6 +111,7 @@ function RouteContent({ pathname }: { pathname: string }) {
   const resaleMatch = pathname.match(/^\/my-tickets\/([^/]+)\/resell$/)
   if (resaleMatch) return <ListForResalePage mint={decodeURIComponent(resaleMatch[1])} />
   if (pathname === '/organizer') return <OrganizerDashboardPage />
+  if (pathname === '/scanner') return <ScannerPage />
   if (pathname === '/organizer/scan') return <PlaceholderPage title="Gate scan" description="Organizer ticket scanning will appear here." />
   return <PlaceholderPage title="Page not found" description="This route is not part of RENTS." />
 }

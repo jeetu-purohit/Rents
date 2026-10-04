@@ -206,8 +206,10 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 - **Design:** `organizer_dashboard_rents`. Create-event form → `POST /api/events` (metadata) + `initialize-event` tx (order and failure handling documented: no orphan Mongo rows if the chain tx fails); dashboard stats (tickets sold, revenue, royalties earned from resales).
 - **Verified:** User confirmed local verification of the organizer dashboard and create-event flow. Resale royalty instruction matching was corrected to Anchor's decoded `resell_ticket` name and verified against the local resale lifecycle; code ordering confirms chain initialization before Mongo metadata persistence. Frontend/backend/shared checks passed; installed oxlint passed after `bunx oxlint` hit the Bun temporary-directory issue. Production build retains browser-externalization and bundle-size warnings.
 
-### 5.8 `TODO`: Scanner page
+### 5.8 `DONE`: Scanner page
 - **No design.** Camera QR scan → verify API → show result → organizer-signs check-in tx. Large clear ✅/❌ states.
+- **Implementation:** Added `/scanner` with QR camera scanning, strict parsing of the existing `{ mint, owner, eventPda }` payload, typed `/api/checkin/verify` integration, clear verification states, and organizer check-in through the existing transaction helper. `@zxing/browser` was added for browser QR scanning.
+- **Verified:** User locally scanned a real My Stubs QR with Phantom organizer wallet, verified the ticket, signed check-in, and observed the used state. Independently verified finalized Devnet transaction `TgHzkYHp4B9PURpjLXqpfdHCxtGqiiokeCiyyTa2GBSKaAD8h9eYBLaU3ZGhGokqQa2PGcRQDcJYAQFeyGTSaqW`: mint `6WVpiWVkzgyR7JVM6GYSGgei52qzh39pjhyREKUxnVLu`, Ticket PDA `GWAnNqMzTTVpgCsoFDhWbCSXTZ5CPNJXxpMwq2GebMqs`, Event PDA `7SQJ2U2Qf9VE9mxAssHTeACBmVsnJ2gKf2hsacYNHBgZ`, owner/event organizer `2NkWubGZXhkgrGmEQ28i1SnzteLEdwPe66fQsV7JtF48`, ticket number 1, face value 1,000,000,000 lamports, supply 1, frozen token account, and on-chain `isUsed = true`. Existing chain-first verification service now rejects the ticket with 409 `Already checked in`. Frontend/backend/shared checks passed; installed oxlint passed after `bunx oxlint` hit the Bun temp-directory issue. Build retains existing wallet browser-externalization and large-chunk warnings.
 - **Depends on:** 3.8
 
 ### 5.9 `TODO`: Frontend polish pass
