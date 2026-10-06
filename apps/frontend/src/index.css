@@ -146,7 +146,12 @@
 
 .ticket-stub {
   position: relative;
-  background: radial-gradient(circle at right center, transparent 10px, var(--color-inverse-surface) 10.5px) top right / 100% 100% no-repeat;
+  background: radial-gradient(
+      circle at right center,
+      transparent 10px,
+      var(--color-inverse-surface) 10.5px
+    )
+    top right / 100% 100% no-repeat;
   filter: drop-shadow(-2px 2px 4px rgb(0 0 0 / 50%));
 }
 

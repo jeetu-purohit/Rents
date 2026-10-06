@@ -1,19 +1,19 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { Buffer } from 'buffer'
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react'
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
-import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets'
-import './index.css'
-import '@solana/wallet-adapter-react-ui/styles.css'
-import App from './App.tsx'
-import { frontendConfig } from './lib/config'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { Buffer } from "buffer";
+import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import "./index.css";
+import "@solana/wallet-adapter-react-ui/styles.css";
+import App from "./App.tsx";
+import { frontendConfig } from "./lib/config";
 
-Object.assign(globalThis, { Buffer })
+Object.assign(globalThis, { Buffer });
 
-const wallets = [new PhantomWalletAdapter()]
+const wallets = [new PhantomWalletAdapter()];
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ConnectionProvider endpoint={frontendConfig.rpcUrl}>
       <WalletProvider wallets={wallets} autoConnect>
@@ -23,4 +23,4 @@ createRoot(document.getElementById('root')!).render(
       </WalletProvider>
     </ConnectionProvider>
   </StrictMode>,
-)
+);
