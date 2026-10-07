@@ -1,13 +1,25 @@
 import { Router } from "express";
-import { verifyTicket, buildCheckInTransaction } from "../controllers/checkin.controller";
+import { verifyTicket } from "../controllers/checkin.controller";
+import type { RequestHandler } from "express";
+import { publicKeyString, requestObject, RequestValidationError } from "../middleware/requestValidation";
 
 const router = Router();
 
 // Step 1: scanner app hits this right after reading the QR code
-router.post("/verify", verifyTicket);              // POST /api/checkin/verify
-
-// Step 2: if valid, request the unsigned check_in_ticket tx
-// (signed by the organizer/gate wallet, not the ticket holder)
-router.post("/", buildCheckInTransaction);         // POST /api/checkin
+const validateCheckInBody: RequestHandler = (req, _res, next) => {
+  try {
+    const body = requestObject(req.body, "Request body");
+    const unknownField = Object.keys(body).find((field) => !["mint", "mintAddress", "owner", "eventPda"].includes(field));
+    if (unknownField) throw new RequestValidationError(`${unknownField} is not a supported request body field`);
+    const mint = body.mint ?? body.mintAddress;
+    publicKeyString(mint, "mint");
+    publicKeyString(body.owner, "owner");
+    publicKeyString(body.eventPda, "eventPda");
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+router.post("/verify", validateCheckInBody, verifyTicket);              // POST /api/checkin/verify
 
 export default router;

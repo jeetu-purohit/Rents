@@ -6,18 +6,18 @@ use crate::state::PlatformConfig;
 
 #[derive(Accounts)]
 pub struct UpdatePlatformWallet<'info> {
-  pub authority: Signer<'info>,
+    pub admin: Signer<'info>,
 
-  #[account(
+    #[account(
     mut,
     seeds = [PLATFORM_CONFIG_SEED],
-    bump = platfrom_config.bump,
-    has_one = authority @ RentsError::Unauthorized
+    bump = platform_config.bump,
+    has_one = admin @ RentsError::NotAdmin
   )]
-  pub pltform_config: Account<'info, PlatformConfig>
+    pub platform_config: Account<'info, PlatformConfig>,
 }
 
-pub fn handler(cts:Context<UpdatePlatformWallet>,new_platform_wallet) -> Result<()>{
-  cts.accounts.pltform_config.platform_wallet = new_platform_wallet;
-  Ok(())
+pub fn handler(ctx: Context<UpdatePlatformWallet>, new_platform_wallet: Pubkey) -> Result<()> {
+    ctx.accounts.platform_config.platform_wallet = new_platform_wallet;
+    Ok(())
 }
