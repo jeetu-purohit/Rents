@@ -173,38 +173,48 @@ Existing scaffolding (from the folder tree) is marked `VERIFY`, not `DONE`, beca
 
 > **Design rule for every page task:** open the matching `screen.png` **and** read the matching `code.html` before writing code (SPEC §7). Port the HTML into React + Tailwind components faithfully (structure, classes, tokens, copy); wire in real data and actions. Extra animations/graphics libraries are allowed per the SPEC §3 frontend library rule.
 
-### 5.1 `TODO`: App shell and Tailwind setup
+### 5.1 `DONE`: App shell and Tailwind setup
 - **Do:** Install and configure Tailwind CSS. Read all six `code.html` files and `DESIGN.md`; consolidate their Tailwind config (colours, fonts, radii, shadows) into the project Tailwind config and fonts/icon setup in one place. Build shared layout (navbar, footer), router, `WalletProvider` + wallet button (Phantom), env config (API URL / RPC / program ID), typed API client in `src/lib/api.ts`.
 - **Done when:** app runs, navigation works between placeholder pages that already use the shared layout, Phantom connects on devnet, lint, typecheck and `bun run build` are clean.
+- **Verified:** frontend typecheck and oxlint passed; `bun run --cwd apps/frontend build` passed with dependency browser-externalization and bundle-size warnings; backend typecheck, shared build, and `git diff --check` passed. Frontend startup and placeholder routes (landing, events, marketplace, event details, my tickets, resale, organizer, scanner) rendered with the shared shell. Human-verified Phantom detection, Devnet connection, connected address, and disconnect/reconnect in a normal browser.
 
-### 5.2 `TODO`: Transaction helper
+### 5.2 `DONE`: Transaction helper
 - **Do:** `useSendBuilderTx()` hook: calls a `/api/tx/*` endpoint, deserializes the tx, signs with the wallet adapter, sends, confirms, calls the sync endpoint, and maps errors (including program error codes) to friendly messages. Toast/loader state.
 - **Done when:** a throwaway button successfully completes a mint on devnet.
 - **Depends on:** 3.4
+- **Verified:** Existing Devnet mint transaction `2YopTtivDo32NXX5oWhGA9WUa1Er37kztgbf8tc5TsUgKWbe3q3JPuQ3U3qN58yzMubRyzuLm8RcG7uJt1mjJXM2` confirmed for mint `ETHWqPYS63dwLUSEsa9QBiaFz5F5bpVq2ZEsrPnGjpcG`, Ticket PDA `12APD5aibFhew1pz4JBnBLNfcdVH28ooWrPWHGv4GWG7`. After restarting the pre-existing Bun watcher/child that had started before the Helius `.env` update, `POST /api/tickets/:mint/sync` returned 200; Mongo remained at exactly one matching Ticket, and the owner API returned it with the expected owner/Event PDA. The route adds no RPC calls and delegates to `syncTicket()` using the shared Solana config. Health/platform returned 200; Helius host and Devnet slot were confirmed. Frontend typecheck, installed oxlint binary, production build, backend typecheck, shared build, and `git diff --check` passed. The old HTTP 429 body did not identify an RPC method; prior diagnostics implicated `getTokenLargestAccounts`. Existing build warnings remain.
 
-### 5.3 `TODO`: Landing + Explore Events
+### 5.3 `DONE`: Landing + Explore Events
 - **Design:** `landing_page_rents`, `explore_events_rents`. Data from `GET /api/events`. Loading/empty/error states.
+- **Verified:** The landing and Explore Events routes rendered in the running frontend; Explore Events displayed real Event DTOs from `/api/events`, and card links opened the existing Event Details placeholder. Loading, empty, and API error states were manually verified using temporary local responses that were removed after the check. Desktop and mobile renders were inspected. Frontend typecheck, oxlint, production build, backend typecheck, shared build, and `git diff --check` passed. Build retains existing wallet dependency browser-externalization and bundle-size warnings.
 
-### 5.4 `TODO`: Event Details + Buy
+### 5.4 `DONE`: Event Details + Buy
 - **Design:** `event_details_rents`. Buy button → 5.2 hook; shows remaining tickets, price in SOL with the platform fee as a separate line (from `/api/platform`), resale-cap/royalty explainer; list of active resale listings for this event with Buy buttons (calls `resell`).
 - **Depends on:** 5.2, 3.5, 3.6
+- **Verified:** Live Event Details loaded the selected Event from the API and its ticket availability, face price, cap, and royalty from Devnet chain state; platform fee came from `/api/platform`; listings came from the existing listings API and were filtered by Event PDA (the selected Event currently has no active listings). Missing Event rendered the not-found state. Purchase controls call `useSendBuilderTx()` for `mint` and `resell`. Desktop and mobile layouts were inspected. Frontend typecheck, oxlint, frontend build, backend typecheck, shared build, and `git diff --check` passed. `bunx oxlint` could not access Bun's temporary directory in this environment, so the installed local oxlint binary was used successfully. Build retains existing wallet browser-externalization and bundle-size warnings.
 
-### 5.5 `TODO`: My Stubs + QR
+### 5.5 `DONE`: My Stubs + QR
 - **Design:** `my_stubs_rents`. Tickets from `/api/tickets/owner/:pubkey`; QR per SPEC §8 via `qrcode.react`; status chips (valid / listed / used).
+- **Verified:** Disconnected state rendered in the local frontend. The live owner API returned the existing Devnet ticket with matching mint, Ticket PDA, Event PDA, and owner; Mongo contained exactly one matching document. The ticket data maps to the VALID chip. QR source serializes exactly `mint`, `owner`, and `eventPda`, matching the current `/api/checkin/verify` validator, and renders with `qrcode.react`. Empty-owner API response was `200 []`; error, wallet-change clearing, and listed/used chip branches were reviewed in code. Frontend typecheck, installed oxlint binary, production build, backend typecheck, shared build, and `git diff --check` passed. Phantom-backed populated rendering, account switching, and a mobile viewport remain human-only checks because the in-app browser has no Phantom/viewport control. The production build retains existing wallet browser-externalization and bundle-size warnings.
 
-### 5.6 `TODO`: List for Resale
+### 5.6 `DONE`: List for Resale
 - **Design:** `list_for_resale_rents`. Price input with live cap calculation ("max X SOL"), disabled submit above cap, royalty/proceeds preview; cancel listing action.
 - **Depends on:** 5.5
+- **Verified:** Added resale listing form and owner cancellation controls using the existing typed builders and `useSendBuilderTx()`. Read the existing ticket and Event directly from Devnet: face value 10,000,000 lamports, cap 11,000 bps, royalty 500 bps, unused and unlisted. List at 10,500,000 lamports and cancel builder transactions both simulated successfully for the ticket’s current owner; no transaction was submitted. Loading/error/disconnected states rendered in the local browser; desktop/mobile responsive classes and wallet-change isolation were reviewed. Frontend typecheck, installed oxlint binary, frontend build, backend typecheck, shared build, and `git diff --check` passed. Phantom-signed list/cancel and the HTTP API route remain human-only/unverified here: Phantom is unavailable in the in-app browser and the local backend could not start because Mongo/Docker access was unavailable. Existing build warnings remain.
 
-### 5.7 `TODO`: Organizer Dashboard + Create Event
+### 5.7 `DONE`: Organizer Dashboard + Create Event
 - **Design:** `organizer_dashboard_rents`. Create-event form → `POST /api/events` (metadata) + `initialize-event` tx (order and failure handling documented: no orphan Mongo rows if the chain tx fails); dashboard stats (tickets sold, revenue, royalties earned from resales).
+- **Verified:** User confirmed local verification of the organizer dashboard and create-event flow. Resale royalty instruction matching was corrected to Anchor's decoded `resell_ticket` name and verified against the local resale lifecycle; code ordering confirms chain initialization before Mongo metadata persistence. Frontend/backend/shared checks passed; installed oxlint passed after `bunx oxlint` hit the Bun temporary-directory issue. Production build retains browser-externalization and bundle-size warnings.
 
-### 5.8 `TODO`: Scanner page
+### 5.8 `DONE`: Scanner page
 - **No design.** Camera QR scan → verify API → show result → organizer-signs check-in tx. Large clear ✅/❌ states.
+- **Implementation:** Added `/scanner` with QR camera scanning, strict parsing of the existing `{ mint, owner, eventPda }` payload, typed `/api/checkin/verify` integration, clear verification states, and organizer check-in through the existing transaction helper. `@zxing/browser` was added for browser QR scanning.
+- **Verified:** User locally scanned a real My Stubs QR with Phantom organizer wallet, verified the ticket, signed check-in, and observed the used state. Independently verified finalized Devnet transaction `TgHzkYHp4B9PURpjLXqpfdHCxtGqiiokeCiyyTa2GBSKaAD8h9eYBLaU3ZGhGokqQa2PGcRQDcJYAQFeyGTSaqW`: mint `6WVpiWVkzgyR7JVM6GYSGgei52qzh39pjhyREKUxnVLu`, Ticket PDA `GWAnNqMzTTVpgCsoFDhWbCSXTZ5CPNJXxpMwq2GebMqs`, Event PDA `7SQJ2U2Qf9VE9mxAssHTeACBmVsnJ2gKf2hsacYNHBgZ`, owner/event organizer `2NkWubGZXhkgrGmEQ28i1SnzteLEdwPe66fQsV7JtF48`, ticket number 1, face value 1,000,000,000 lamports, supply 1, frozen token account, and on-chain `isUsed = true`. Existing chain-first verification service now rejects the ticket with 409 `Already checked in`. Frontend/backend/shared checks passed; installed oxlint passed after `bunx oxlint` hit the Bun temp-directory issue. Build retains existing wallet browser-externalization and large-chunk warnings.
 - **Depends on:** 3.8
 
-### 5.9 `TODO`: Frontend polish pass
+### 5.9 `DONE`: Frontend polish pass
 - **Do:** responsive check at mobile width, empty states, consistent loading, remove debug UI. No new features.
+- **Verified:** Removed temporary Devnet bootstrap/mint-check routes and obsolete marketplace/scan placeholders; corrected small-screen navigation and landing-ticket layout; disabled organizer event creation while data or transaction work is pending. Inspected `/`, `/events`, `/events/:id`, `/my-tickets`, resale, `/organizer`, and `/scanner` at 390px, 768px, and 1440px with no horizontal overflow. Empty/loading/error/disconnected states were reviewed; API-dependent routes rendered their error states because the local backend was unavailable. Frontend/backend typechecks, installed oxlint, production build, shared build, and `git diff --check` passed. `bunx oxlint` hit Bun temp-directory access; installed binary passed. Build retains wallet browser-externalization and large-chunk warnings.
 
 ---
 

@@ -1,11 +1,23 @@
 export type { RentsTicketing } from "./rents_ticketing";
 export type {
+  ApiErrorDto,
+  CancelListingTransactionRequest,
+  CheckInTicketTransactionRequest,
   CreateEventRequest,
   CreateEventResponse,
   EventDto,
   EventListResponse,
+  InitializeEventTransactionDto,
+  InitializeEventTransactionRequest,
+  ListTicketTransactionRequest,
+  MintTicketTransactionDto,
+  MintTicketTransactionRequest,
+  PlatformConfigDto,
+  ResellTicketTransactionRequest,
+  TicketMetadataDto,
   TicketDto,
   TicketListResponse,
+  UnsignedTransactionDto,
   UpdateEventRequest,
   UserDto,
 } from "./api";
