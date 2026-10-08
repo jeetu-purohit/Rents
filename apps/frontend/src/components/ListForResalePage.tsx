@@ -461,11 +461,12 @@ export function ListForResalePage({ mint }: { mint: string }) {
           )}
           {blockedMessage && (
             <p
-              role="alert"
-              className="border border-error-container/50 bg-error-container/10 p-3 font-body text-utility-sm text-error-container"
+              role="status"
+              className="border border-primary-container/40 bg-primary-container/10 p-3 font-body text-utility-sm text-primary"
             >
               {blockedMessage}
             </p>
+
           )}
         </div>
         <footer className="border-t border-dashed border-outline-variant bg-surface-container-high p-gutter">
