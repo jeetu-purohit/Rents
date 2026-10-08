@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"bun run --cwd apps/frontend dev --host\" \"bun run --cwd apps/backend dev\"",
+    "dev": "concurrently \"bun run --cwd apps/frontend dev\" \"bun run --cwd apps/backend dev\"",
     "build:shared": "bun --filter shared run build",
     "anchor:build": "anchor build",
     "anchor:deploy": "anchor deploy",
