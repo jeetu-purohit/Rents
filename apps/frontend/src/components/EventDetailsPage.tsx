@@ -105,8 +105,8 @@ function TransactionPanel({
   const confirmed = state.status === "success";
   return (
     <div
-      role={state.status === "error" || state.result?.syncError ? "alert" : "status"}
-      className={`mt-5 border p-4 ${confirmed ? "border-tertiary/50 bg-tertiary/10 text-background" : state.status === "error" ? "border-error-container bg-error-container/10 text-error-container" : "border-outline-variant text-background"}`}
+      role={state.status === "error" ? "alert" : "status"}
+      className={`status-message mt-5 ${confirmed ? "status-success" : state.status === "error" ? "status-error" : "status-info"}`}
     >
       <p className="font-body text-body-md">{state.message}</p>
       {state.errorCode && <p className="mt-2 font-mono text-utility-sm">{state.errorCode}</p>}
@@ -153,7 +153,7 @@ function TransactionPanel({
         <p className="mt-2 break-all font-mono text-utility-sm">Ticket account: {state.result.ticketPda}</p>
       )}
       {state.result?.syncError && (
-        <p className="mt-3 border-t border-current/20 pt-3 font-body text-utility-sm">
+        <p role="status" className="status-message status-warning mt-3 font-body text-utility-sm">
           The transaction is confirmed on-chain. Ticket cache sync did not complete: {state.result.syncError}
         </p>
       )}
@@ -432,7 +432,7 @@ export function EventDetailsPage({ id }: { id: string }) {
                 </div>
               )}
               {page.data.chainError && (
-                <p className="mt-1 font-body text-utility-sm text-error-container">
+                <p role="status" className="status-message status-warning mt-2 font-body text-utility-sm">
                   Chain availability could not be verified: {page.data.chainError}
                 </p>
               )}
@@ -499,7 +499,7 @@ export function EventDetailsPage({ id }: { id: string }) {
               </div>
             </div>
             {page.data.platformError && (
-              <p role="alert" className="mt-2 font-body text-utility-sm text-error-container">
+              <p role="alert" className="status-message status-error mt-2 font-body text-utility-sm">
                 Platform fee unavailable: {page.data.platformError}
               </p>
             )}
@@ -537,7 +537,7 @@ export function EventDetailsPage({ id }: { id: string }) {
               </p>
             )}
             {page.data.listingsError && (
-              <p role="alert" className="mt-3 font-body text-utility-sm text-error-container">
+              <p role="status" className="status-message status-warning mt-3 font-body text-utility-sm">
                 Resale listings could not load: {page.data.listingsError}
               </p>
             )}
@@ -560,7 +560,7 @@ export function EventDetailsPage({ id }: { id: string }) {
         </header>
         <div className="ticket-paper rounded border border-outline-variant px-5 text-background sm:px-8">
           {page.data.listingsError && (
-            <p role="alert" className="py-6 font-body text-body-md text-error-container">
+            <p role="status" className="status-message status-warning my-3 font-body text-body-md">
               Resale listings could not load: {page.data.listingsError}
             </p>
           )}

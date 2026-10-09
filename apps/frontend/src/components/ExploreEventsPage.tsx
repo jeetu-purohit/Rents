@@ -333,11 +333,11 @@ export function ExploreEventsPage() {
           <div className="absolute inset-x-0 top-0 h-1 bg-primary" aria-hidden="true" />
           <div className="mx-auto flex max-w-2xl flex-col items-center">
             <div className="flex h-16 w-16 items-center justify-center border border-primary/30 bg-primary/10">
-              <span className="material-symbols-outlined text-3xl text-primary" aria-hidden="true">
+              <span className="material-symbols-outlined text-3xl text-error-container" aria-hidden="true">
                 cloud_off
               </span>
             </div>
-            <p className="mt-5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
+            <p className="mt-5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-error-container">
               Manifest temporarily unavailable
             </p>
             <h2 className="mt-2 font-display text-4xl uppercase leading-none sm:text-5xl">

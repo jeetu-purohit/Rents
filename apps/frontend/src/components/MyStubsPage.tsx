@@ -81,7 +81,7 @@ function StatusChips({ ticket }: { ticket: TicketDto }) {
       {statuses.map((status) => (
         <span
           key={status}
-          className={`border px-2 py-1 font-mono text-utility-sm font-bold ${status === "USED" ? "border-error-container bg-error-container/10 text-error-container" : status === "LISTED" ? "border-primary-container bg-primary-container text-on-primary-container" : "border-tertiary-container bg-tertiary/20 text-on-tertiary-container"}`}
+          className={`border px-2 py-1 font-mono text-utility-sm font-bold ${status === "USED" ? "border-outline-variant bg-surface-container text-on-surface-variant" : status === "LISTED" ? "border-primary-container bg-primary-container text-on-primary-container" : "border-tertiary-container bg-tertiary/20 text-on-tertiary-container"}`}
         >
           {status === "USED" ? "USED" : status === "LISTED" ? "LISTED" : "VALID"}
         </span>
@@ -158,7 +158,7 @@ function TicketCard({
           <StatusChips ticket={ticket} />
         </div>
         {used && (
-          <span aria-hidden="true" className="pointer-events-none absolute bottom-20 right-6 -rotate-12 border-4 border-error-container px-4 py-1 font-display text-headline-lg uppercase text-error-container opacity-70 sm:right-12">
+          <span aria-hidden="true" className="pointer-events-none absolute bottom-20 right-6 -rotate-12 border-4 border-outline px-4 py-1 font-display text-headline-lg uppercase text-outline opacity-70 sm:right-12">
             Used
           </span>
         )}
@@ -435,7 +435,7 @@ export function MyStubsPage() {
           role="alert"
           className="ticket-paper flex min-h-64 flex-col items-center justify-center gap-4 border border-dashed border-outline-variant p-6 text-center text-background sm:p-stub-padding"
         >
-          <span className="material-symbols-outlined text-5xl text-error-container" aria-hidden="true">
+          <span className="material-symbols-outlined text-3xl text-error-container" aria-hidden="true">
             cloud_off
           </span>
           <h2 className="font-display text-headline-lg uppercase">Tickets are unavailable</h2>
@@ -459,7 +459,7 @@ export function MyStubsPage() {
       {owner && txOwner === owner && tx.state.message && (
         <div
           role={tx.state.status === "error" ? "alert" : "status"}
-          className={`mb-6 border p-4 ${tx.state.status === "error" ? "border-error-container bg-error-container/10 text-error-container" : tx.state.status === "success" ? "border-tertiary/50 bg-tertiary/10 text-on-background" : "border-outline-variant text-on-surface-variant"}`}
+          className={`status-message mb-6 ${tx.state.status === "error" ? "status-error" : tx.state.status === "success" ? "status-success" : "status-info"}`}
         >
           <p className="font-body text-body-md">{tx.state.message}</p>
           {tx.state.errorCode && <p className="mt-1 font-mono text-utility-sm">{tx.state.errorCode}</p>}
@@ -474,7 +474,7 @@ export function MyStubsPage() {
             </a>
           )}
           {tx.state.result?.syncError && (
-            <p className="mt-2 font-body text-utility-sm">
+            <p role="status" className="status-message status-warning mt-3 font-body text-utility-sm">
               Transaction confirmed on-chain; ticket cache sync failed: {tx.state.result.syncError}
             </p>
           )}

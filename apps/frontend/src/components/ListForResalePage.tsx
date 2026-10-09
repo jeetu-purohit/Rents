@@ -209,7 +209,7 @@ export function ListForResalePage({ mint }: { mint: string }) {
         className="ticket-paper mx-auto flex min-h-72 w-full max-w-2xl flex-col items-center justify-center gap-4 border border-dashed border-outline-variant p-stub-padding text-center text-background"
       >
         <span
-          className="material-symbols-outlined text-5xl text-error-container"
+          className="material-symbols-outlined text-3xl text-error-container"
           aria-hidden="true"
         >
           sell
@@ -415,7 +415,7 @@ export function ListForResalePage({ mint }: { mint: string }) {
                 <span className="text-primary">Max {formatSol(cap!)}</span>
               </p>
               {inputLamports !== undefined && inputLamports > cap! && (
-                <p role="alert" className="mt-3 font-body text-utility-sm text-error-container">
+                <p role="alert" className="status-message status-error mt-3 font-body text-utility-sm">
                   Price exceeds this Event’s on-chain resale cap.
                 </p>
               )}
@@ -454,7 +454,7 @@ export function ListForResalePage({ mint }: { mint: string }) {
           {data.platformError && (
             <p
               role="status"
-              className="border border-outline-variant p-3 font-body text-utility-sm text-on-surface-variant"
+              className="status-message status-info p-3 font-body text-utility-sm"
             >
               Platform fee preview unavailable: {data.platformError}
             </p>
@@ -462,7 +462,7 @@ export function ListForResalePage({ mint }: { mint: string }) {
           {blockedMessage && (
             <p
               role="status"
-              className="border border-primary-container/40 bg-primary-container/10 p-3 font-body text-utility-sm text-primary"
+              className="status-message status-warning p-3 font-body text-utility-sm"
             >
               {blockedMessage}
             </p>
@@ -489,7 +489,7 @@ export function ListForResalePage({ mint }: { mint: string }) {
       {owner && txOwner === owner && tx.state.message && (
         <div
           role={tx.state.status === "error" ? "alert" : "status"}
-          className={`mt-5 border p-4 ${tx.state.status === "error" ? "border-error-container bg-error-container/10 text-error-container" : tx.state.status === "success" ? "border-tertiary/50 bg-tertiary/10 text-on-background" : "border-outline-variant text-on-surface-variant"}`}
+          className={`status-message mt-5 ${tx.state.status === "error" ? "status-error" : tx.state.status === "success" ? "status-success" : "status-info"}`}
         >
           <p className="font-body text-body-md">{tx.state.message}</p>
           {tx.state.errorCode && (
@@ -525,7 +525,7 @@ export function ListForResalePage({ mint }: { mint: string }) {
             </a>
           )}
           {tx.state.result?.syncError && (
-            <p className="mt-3 border-t border-current/20 pt-3 font-body text-utility-sm">
+            <p role="status" className="status-message status-warning mt-3 font-body text-utility-sm">
               Transaction confirmed on-chain; ticket cache sync failed: {tx.state.result.syncError}
             </p>
           )}

@@ -141,13 +141,12 @@ function ResultCard({ result }: { result: ScanResult }) {
   return (
     <section
       role={accepted || used ? "status" : "alert"}
-      aria-live="polite"
-      className={`border-2 p-5 sm:p-8 ${accepted ? "border-tertiary bg-tertiary/10" : used ? "border-outline bg-surface-container" : "border-error-container bg-error-container/10"}`}
+      className={`status-message border-2 p-5 sm:p-8 ${accepted ? "status-success" : used ? "status-info" : "status-error"}`}
     >
       <div className="flex items-start gap-4">
         <span
           aria-hidden="true"
-          className={`font-display text-5xl leading-none sm:text-7xl ${accepted ? "text-tertiary" : used ? "text-primary" : "text-error"}`}
+          className={`font-display text-4xl leading-none sm:text-5xl ${accepted ? "text-tertiary" : used ? "text-primary" : "text-error"}`}
         >
           {accepted ? "✓" : used ? "!" : "✕"}
         </span>
@@ -210,7 +209,7 @@ function ResultCard({ result }: { result: ScanResult }) {
               {result.refreshMessage && (
                 <p
                   role="status"
-                  className="mt-3 border border-primary/40 p-3 font-body text-utility-sm text-primary"
+                  className="status-message status-warning mt-3 font-body text-utility-sm"
                 >
                   {result.refreshMessage}
                 </p>
@@ -572,7 +571,7 @@ export function ScannerPage() {
               {tx.state.message && (
                 <div
                   role={tx.state.status === "error" ? "alert" : "status"}
-                  className={`mt-4 border p-4 ${tx.state.status === "error" ? "border-error-container bg-error-container/10 text-error" : tx.state.status === "success" ? "border-tertiary/50 bg-tertiary/10 text-tertiary" : "border-outline-variant text-on-surface-variant"}`}
+                  className={`status-message mt-4 ${tx.state.status === "error" ? "status-error" : tx.state.status === "success" ? "status-success" : "status-info"}`}
                 >
                   <p className="font-body text-body-md">{tx.state.message}</p>
                   {tx.state.errorCode && (

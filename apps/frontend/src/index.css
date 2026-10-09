@@ -159,6 +159,35 @@
   box-shadow: var(--shadow-marquee);
 }
 
+@layer components {
+  .status-message {
+    border: 1px solid;
+    border-radius: var(--radius-sm);
+    padding: 0.875rem 1rem;
+    color: var(--color-on-surface);
+  }
+
+  .status-info {
+    border-color: var(--color-outline-variant);
+    background: var(--color-surface-container);
+  }
+
+  .status-warning {
+    border-color: color-mix(in srgb, var(--color-primary) 42%, transparent);
+    background: color-mix(in srgb, var(--color-primary) 9%, var(--color-surface-container));
+  }
+
+  .status-error {
+    border-color: color-mix(in srgb, var(--color-error) 42%, transparent);
+    background: color-mix(in srgb, var(--color-error-container) 18%, var(--color-surface-container));
+  }
+
+  .status-success {
+    border-color: color-mix(in srgb, var(--color-tertiary) 42%, transparent);
+    background: color-mix(in srgb, var(--color-tertiary) 9%, var(--color-surface-container));
+  }
+}
+
 @media (max-width: 767px) {
   .text-headline-xl {
     font-size: 2.5rem;

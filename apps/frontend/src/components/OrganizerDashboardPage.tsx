@@ -816,13 +816,13 @@ export function OrganizerDashboardPage() {
       )}
 
       {view.status === "error" && (
-        <div role="alert" className="border border-error-container bg-error-container/10 p-6">
+        <div role="alert" className="status-message status-error p-6">
           <div className="flex items-start gap-4">
-            <span className="material-symbols-outlined text-3xl text-error-container" aria-hidden="true">
+            <span className="material-symbols-outlined text-2xl text-error" aria-hidden="true">
               error
             </span>
             <div>
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-error-container">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-error">
                 System error
               </p>
               <h2 className="mt-1 font-display text-3xl uppercase text-on-surface">
@@ -834,7 +834,7 @@ export function OrganizerDashboardPage() {
               <button
                 type="button"
                 onClick={() => setRetry((value) => value + 1)}
-                className="mt-5 inline-flex items-center gap-2 border border-current px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-error-container transition-colors hover:bg-error-container/10"
+                className="mt-5 inline-flex items-center gap-2 border border-current px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-error transition-colors hover:bg-error-container/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
               >
                 Try again
                 <span className="material-symbols-outlined text-sm" aria-hidden="true">refresh</span>
@@ -1241,16 +1241,18 @@ export function OrganizerDashboardPage() {
       {transactionOwner === owner && (tx.state.message || flowMessage) && (
         <div
           role={tx.state.status === "error" || formError ? "alert" : "status"}
-          className={`mt-8 overflow-hidden border ${tx.state.status === "error" || formError
-              ? "border-error-container bg-error-container/10"
-              : tx.state.status === "success" && !pendingMetadata
-                ? "border-tertiary/50 bg-tertiary/10"
-                : "border-outline-variant bg-surface-container"
+          className={`status-message mt-8 overflow-hidden p-0 ${tx.state.status === "error" || formError
+              ? "status-error"
+              : pendingMetadata
+                ? "status-warning"
+                : tx.state.status === "success"
+                  ? "status-success"
+                  : "status-info"
             }`}
         >
           <div className="flex items-start gap-4 p-5">
             <span
-              className={`material-symbols-outlined text-2xl ${tx.state.status === "error" || formError ? "text-error-container" : "text-primary"
+              className={`material-symbols-outlined text-2xl ${tx.state.status === "error" || formError ? "text-error" : "text-primary"
                 }`}
               aria-hidden="true"
             >
@@ -1260,7 +1262,7 @@ export function OrganizerDashboardPage() {
               <p className="font-body text-body-md text-on-surface">
                 {flowMessage || tx.state.message}
               </p>
-              {formError && <p className="mt-2 font-body text-body-md text-error-container">{formError}</p>}
+              {formError && <p className="mt-2 font-body text-body-md text-error">{formError}</p>}
               {tx.state.errorCode && (
                 <p className="mt-2 font-mono text-[10px] uppercase text-on-surface-variant">{tx.state.errorCode}</p>
               )}
@@ -1397,6 +1399,9 @@ export function OrganizerDashboardPage() {
                   onChange={(event) => setField("imageUrl", event.target.value)}
                   className="mt-2 block w-full border border-outline-variant bg-surface-container-lowest px-3 py-3.5 font-mono text-utility-sm text-on-surface outline-none focus:border-primary"
                 />
+                <span className="mt-1 block font-body text-utility-sm text-on-surface-variant">
+                  Optional. You can create this Event without an image.
+                </span>
               </label>
 
               <label className="font-section-label text-section-label uppercase text-on-surface-variant">
@@ -1470,7 +1475,7 @@ export function OrganizerDashboardPage() {
                 </div>
 
                 {formError && (
-                  <p role="alert" className="mb-4 border border-error-container p-3 font-body text-utility-sm text-error-container">
+                  <p role="alert" className="status-message status-error mb-4 font-body text-utility-sm">
                     {formError}
                   </p>
                 )}
