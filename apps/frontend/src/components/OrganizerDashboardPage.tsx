@@ -17,9 +17,23 @@ type ChainEvent = {
   resaleCapBps: number;
   royaltyBps: number;
 };
+type ChainTicket = {
+  publicKey: PublicKey;
+  account: {
+    event: PublicKey;
+    mint: PublicKey;
+    ticketNumber: number;
+    faceValue: BN;
+    isUsed: boolean;
+    usedAt: BN;
+    listingPrice: BN | null;
+    resaleCount: number;
+  };
+};
 type OrganizerEvent = {
   metadata: EventDto;
   chain: ChainEvent;
+  tickets: ChainTicket[];
   primaryRevenue: bigint;
   royalties: bigint;
 };
@@ -70,6 +84,31 @@ function parseSol(value: string): bigint | undefined {
   if (!match) return undefined;
   const amount = BigInt(match[1]) * LAMPORTS + BigInt((match[2] ?? "").padEnd(9, "0") || "0");
   return amount > 0n && amount <= U64_MAX ? amount : undefined;
+}
+
+function shortAddress(address: string): string {
+  return `${address.slice(0, 6)}…${address.slice(-6)}`;
+}
+
+async function currentHolderForMint(
+  connection: ReturnType<typeof useConnection>["connection"],
+  mint: PublicKey,
+): Promise<string | null> {
+  // Every RENTS ticket mint has supply 1. The token account holding that unit
+  // identifies the current holder, including after an on-chain resale.
+  const largestAccounts = await connection.getTokenLargestAccounts(mint, "confirmed");
+  const holderTokenAccount = largestAccounts.value.find((account) => account.amount === "1");
+  if (!holderTokenAccount) return null;
+
+  const tokenAccountInfo = await connection.getParsedAccountInfo(
+    holderTokenAccount.address,
+    "confirmed",
+  );
+  const data = tokenAccountInfo.value?.data as unknown as
+    | { parsed?: { info?: { owner?: unknown } } }
+    | undefined;
+  const ownerAddress = data?.parsed?.info?.owner;
+  return typeof ownerAddress === "string" ? ownerAddress : null;
 }
 function errorMessage(error: unknown): string {
   return error instanceof ApiError
@@ -222,11 +261,17 @@ function StatCard({
         className="absolute right-4 top-4 material-symbols-outlined text-4xl opacity-20"
         aria-hidden="true"
       >
-        {label === "TICKETS SOLD"
-          ? "sell"
-          : label === "PRIMARY SALES REVENUE"
-            ? "payments"
-            : "bolt"}
+        {label.includes("TICKET")
+          ? "confirmation_number"
+          : label.includes("INVENTORY")
+            ? "inventory_2"
+            : label.includes("CHECK-IN")
+              ? "how_to_reg"
+              : label.includes("RESALE")
+                ? "sync_alt"
+                : label.includes("REVENUE")
+                  ? "payments"
+                  : "bolt"}
       </span>
       <h2
         className={`mb-4 font-section-label text-section-label uppercase tracking-widest ${amber ? "text-primary" : "text-inverse-on-surface/70"}`}
@@ -257,6 +302,10 @@ export function OrganizerDashboardPage() {
   const [metadataBusy, setMetadataBusy] = useState(false);
   const [pendingMetadata, setPendingMetadata] = useState<PendingMetadata>();
   const [transactionOwner, setTransactionOwner] = useState<string>();
+  const [selectedEventPda, setSelectedEventPda] = useState<string | null>(null);
+  const [ticketOwners, setTicketOwners] = useState<Record<string, string | null>>({});
+  const [ticketOwnersLoading, setTicketOwnersLoading] = useState(false);
+  const [ticketOwnersError, setTicketOwnersError] = useState<string | null>(null);
 
   const loadDashboard = useCallback(
     async (organizer: string, active: () => boolean) => {
@@ -292,6 +341,7 @@ export function OrganizerDashboardPage() {
             return {
               metadata,
               chain,
+              tickets: eventTickets as unknown as ChainTicket[],
               primaryRevenue: BigInt(chain.basePrice.toString()) * BigInt(chain.ticketsSold),
               royalties,
             };
@@ -311,6 +361,10 @@ export function OrganizerDashboardPage() {
     setTransactionOwner(undefined);
     setPendingMetadata(undefined);
     setFlowMessage("");
+    setSelectedEventPda(null);
+    setTicketOwners({});
+    setTicketOwnersError(null);
+    setTicketOwnersLoading(false);
   }, [owner, resetTx]);
 
   useEffect(() => {
@@ -335,6 +389,67 @@ export function OrganizerDashboardPage() {
         ? { status: "loading" as const, owner }
         : { status: "disconnected" as const };
   const readyEvents = view.status === "ready" ? view.events : [];
+  const selectedEvent = selectedEventPda
+    ? readyEvents.find((event) => event.metadata.eventPda === selectedEventPda)
+    : undefined;
+  const selectedTickets = selectedEvent?.tickets;
+
+  useEffect(() => {
+    if (!selectedTickets) return;
+    let active = true;
+    const tickets = selectedTickets;
+    setTicketOwners({});
+    setTicketOwnersError(null);
+    setTicketOwnersLoading(tickets.length > 0);
+
+    async function loadTicketOwners() {
+      const owners: Record<string, string | null> = {};
+      try {
+        // Keep RPC concurrency modest for larger events and public Devnet RPCs.
+        for (let start = 0; start < tickets.length; start += 6) {
+          const batch = tickets.slice(start, start + 6);
+          const results = await Promise.all(
+            batch.map(async (ticket) => {
+              const mint = ticket.account.mint.toBase58();
+              try {
+                return [mint, await currentHolderForMint(connection, ticket.account.mint)] as const;
+              } catch {
+                return [mint, null] as const;
+              }
+            }),
+          );
+          for (const [mint, holder] of results) owners[mint] = holder;
+          if (active) setTicketOwners({ ...owners });
+        }
+        if (active && Object.values(owners).some((holder) => holder === null)) {
+          setTicketOwnersError(
+            "Some current holders could not be resolved from Devnet. Refresh the dashboard and try again.",
+          );
+        }
+      } catch {
+        if (active) {
+          setTicketOwnersError("Current ticket owners could not be loaded from Devnet.");
+        }
+      } finally {
+        if (active) setTicketOwnersLoading(false);
+      }
+    }
+
+    void loadTicketOwners();
+    return () => {
+      active = false;
+    };
+  }, [connection, selectedTickets]);
+
+  useEffect(() => {
+    if (!selectedEventPda) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedEventPda(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [selectedEventPda]);
+
   const totalSold = readyEvents.reduce((sum, item) => sum + item.chain.ticketsSold, 0);
   const totalRevenue = readyEvents.reduce((sum, item) => sum + item.primaryRevenue, 0n);
   const totalRoyalties = readyEvents.reduce((sum, item) => sum + item.royalties, 0n);
@@ -801,7 +916,18 @@ export function OrganizerDashboardPage() {
                   return (
                     <article
                       key={metadata.eventPda}
-                      className="group relative overflow-hidden border border-outline-variant bg-surface-container transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-marquee-soft"
+                      role="button"
+                      tabIndex={0}
+                      aria-haspopup="dialog"
+                      aria-label={`Open analytics for ${metadata.name}`}
+                      onClick={() => setSelectedEventPda(metadata.eventPda)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedEventPda(metadata.eventPda);
+                        }
+                      }}
+                      className="group relative cursor-pointer overflow-hidden border border-outline-variant bg-surface-container text-left transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-marquee-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                     >
                       <div className="absolute inset-y-0 left-0 w-1 bg-primary/30 transition-colors group-hover:bg-primary" />
                       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.5fr)_minmax(220px,0.75fr)_minmax(180px,0.6fr)_auto]">
@@ -862,8 +988,11 @@ export function OrganizerDashboardPage() {
                         </div>
 
                         <div className="flex items-center justify-end border-t border-dashed border-outline-variant p-5 sm:p-6 lg:border-l lg:border-t-0">
-                          <span className="material-symbols-outlined text-outline transition-colors group-hover:text-primary" aria-hidden="true">
-                            arrow_forward
+                          <span className="inline-flex items-center gap-2 font-mono text-[9px] font-bold uppercase tracking-wider text-on-surface-variant transition-colors group-hover:text-primary">
+                            <span className="hidden sm:inline">View analytics</span>
+                            <span className="material-symbols-outlined text-outline transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary" aria-hidden="true">
+                              arrow_forward
+                            </span>
                           </span>
                         </div>
                       </div>
@@ -874,6 +1003,239 @@ export function OrganizerDashboardPage() {
             )}
           </section>
         </>
+      )}
+
+      {selectedEvent && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-3 backdrop-blur-sm sm:p-6"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedEventPda(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="event-analytics-title"
+            className="mx-auto my-3 w-full max-w-6xl overflow-hidden border border-outline-variant bg-background shadow-2xl sm:my-6"
+          >
+            <header className="relative border-b border-dashed border-outline-variant bg-surface-container p-5 sm:p-8">
+              <div className="absolute inset-y-0 left-0 w-1 bg-primary" aria-hidden="true" />
+              <div className="flex items-start justify-between gap-4 pl-2">
+                <div className="min-w-0">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="border border-primary/40 bg-primary/10 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-primary">
+                      Event analytics
+                    </span>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">
+                      Event · {selectedEvent.metadata.onChainEventId}
+                    </span>
+                  </div>
+                  <h2
+                    id="event-analytics-title"
+                    className="break-words font-display text-4xl uppercase leading-none text-on-surface sm:text-6xl"
+                  >
+                    {selectedEvent.metadata.name}
+                  </h2>
+                  <p className="mt-3 max-w-3xl font-body text-sm leading-relaxed text-on-surface-variant">
+                    {selectedEvent.metadata.description}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedEventPda(null)}
+                  aria-label="Close event analytics"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center border border-outline-variant text-on-surface-variant transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">close</span>
+                </button>
+              </div>
+              <div className="mt-6 grid gap-3 border-t border-dashed border-outline-variant pt-5 sm:grid-cols-3">
+                <div>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">Event date</p>
+                  <p className="mt-1 font-mono text-sm text-on-surface">
+                    {new Date(selectedEvent.metadata.date).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">Venue</p>
+                  <p className="mt-1 break-words font-mono text-sm text-on-surface">{selectedEvent.metadata.venue}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">Canonical Event PDA</p>
+                  <a
+                    href={`https://explorer.solana.com/address/${selectedEvent.metadata.eventPda}?cluster=devnet`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 block break-all font-mono text-xs text-primary underline decoration-dashed underline-offset-4 hover:opacity-80"
+                  >
+                    {shortAddress(selectedEvent.metadata.eventPda)} · View on Explorer
+                  </a>
+                </div>
+              </div>
+            </header>
+
+            <div className="space-y-8 p-4 sm:p-8">
+              {(() => {
+                const tickets = selectedEvent.tickets;
+                const minted = selectedEvent.chain.ticketsSold;
+                const capacity = selectedEvent.chain.maxTickets;
+                const progress = capacity > 0 ? Math.min(100, (minted / capacity) * 100) : 0;
+                const checkIns = tickets.filter((ticket) => ticket.account.isUsed).length;
+                const resaleCount = tickets.reduce((sum, ticket) => sum + ticket.account.resaleCount, 0);
+                const listedCount = tickets.filter((ticket) => ticket.account.listingPrice != null).length;
+                const remaining = Math.max(0, capacity - minted);
+                const basePrice = BigInt(selectedEvent.chain.basePrice.toString());
+
+                return (
+                  <>
+                    <section aria-label="Event performance">
+                      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">Performance overview</p>
+                          <h3 className="mt-1 font-display text-3xl uppercase text-on-surface sm:text-4xl">The numbers</h3>
+                        </div>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-on-surface-variant">
+                          {Math.round(progress)}% of available tickets minted
+                        </span>
+                      </div>
+                      <div className="mb-5 h-2 overflow-hidden bg-surface-variant">
+                        <div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${progress}%` }} />
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <StatCard label="TICKETS MINTED" value={minted.toLocaleString()} suffix={`OF ${capacity.toLocaleString()}`} />
+                        <StatCard label="INVENTORY LEFT" value={remaining.toLocaleString()} suffix="AVAILABLE" amber />
+                        <StatCard label="CHECK-INS" value={checkIns.toLocaleString()} suffix={`OF ${minted.toLocaleString()}`} />
+                        <StatCard label="RESALES" value={resaleCount.toLocaleString()} suffix="COMPLETED" />
+                      </div>
+                    </section>
+
+                    <section aria-label="Event revenue and rules" className="grid gap-4 lg:grid-cols-2">
+                      <article className="border border-outline-variant bg-inverse-surface p-5 text-inverse-on-surface sm:p-6">
+                        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-inverse-on-surface/65">Primary sales revenue</p>
+                        <p className="mt-3 break-words font-mono text-3xl sm:text-4xl">{formatSol(selectedEvent.primaryRevenue)}</p>
+                        <p className="mt-3 font-body text-sm leading-relaxed text-inverse-on-surface/70">
+                          {minted.toLocaleString()} minted tickets × {formatSol(basePrice)} face value. This is the recorded primary-sale amount before any separate off-chain costs.
+                        </p>
+                      </article>
+                      <article className="border border-primary/40 bg-primary/10 p-5 sm:p-6">
+                        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-primary">Resale royalties earned</p>
+                        <p className="mt-3 break-words font-mono text-3xl text-primary sm:text-4xl">{formatSol(selectedEvent.royalties)}</p>
+                        <p className="mt-3 font-body text-sm leading-relaxed text-on-surface-variant">
+                          Total organizer royalty transfers verified from confirmed resale transactions for this Event.
+                        </p>
+                      </article>
+                      <div className="grid grid-cols-2 gap-3 lg:col-span-2 xl:grid-cols-4">
+                        <div className="border border-outline-variant p-4">
+                          <p className="font-mono text-[9px] uppercase tracking-wider text-on-surface-variant">Face value</p>
+                          <p className="mt-2 font-mono text-lg text-on-surface">{formatSol(basePrice)}</p>
+                        </div>
+                        <div className="border border-outline-variant p-4">
+                          <p className="font-mono text-[9px] uppercase tracking-wider text-on-surface-variant">Resale cap</p>
+                          <p className="mt-2 font-mono text-lg text-on-surface">{(selectedEvent.chain.resaleCapBps / 100).toLocaleString()}%</p>
+                        </div>
+                        <div className="border border-outline-variant p-4">
+                          <p className="font-mono text-[9px] uppercase tracking-wider text-on-surface-variant">Organizer royalty</p>
+                          <p className="mt-2 font-mono text-lg text-on-surface">{(selectedEvent.chain.royaltyBps / 100).toLocaleString()}%</p>
+                        </div>
+                        <div className="border border-outline-variant p-4">
+                          <p className="font-mono text-[9px] uppercase tracking-wider text-on-surface-variant">Currently listed</p>
+                          <p className="mt-2 font-mono text-lg text-on-surface">{listedCount.toLocaleString()} tickets</p>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section aria-labelledby="ticket-holders-title">
+                      <header className="mb-4 flex flex-col gap-3 border-b border-dashed border-outline-variant pb-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">On-chain ticket accounts</p>
+                          <h3 id="ticket-holders-title" className="mt-1 font-display text-3xl uppercase text-on-surface sm:text-4xl">Ticket holders</h3>
+                          <p className="mt-2 max-w-2xl font-body text-sm text-on-surface-variant">
+                            Current holders are resolved from the token account that owns each one-of-one ticket NFT. The list reflects current ownership, not the original buyer.
+                          </p>
+                        </div>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-on-surface-variant">
+                          {tickets.length.toLocaleString()} ticket accounts
+                        </span>
+                      </header>
+
+                      {ticketOwnersLoading && Object.keys(ticketOwners).length === 0 && (
+                        <div role="status" className="border border-dashed border-outline-variant p-6 font-mono text-xs uppercase tracking-wider text-on-surface-variant">
+                          <span className="mr-2 inline-block h-2 w-2 animate-pulse bg-primary" /> Resolving current holders from Devnet…
+                        </div>
+                      )}
+                      {ticketOwnersError && (
+                        <p role="status" className="mb-4 border border-outline-variant bg-surface-container p-3 font-mono text-[10px] leading-relaxed text-on-surface-variant">
+                          {ticketOwnersError}
+                        </p>
+                      )}
+                      {tickets.length === 0 ? (
+                        <div className="border border-dashed border-outline-variant p-8 text-center font-mono text-xs uppercase tracking-wider text-on-surface-variant">
+                          No ticket accounts have been indexed for this Event yet.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto border border-outline-variant">
+                          <table className="w-full min-w-[720px] border-collapse text-left">
+                            <thead className="bg-surface-container">
+                              <tr className="border-b border-dashed border-outline-variant">
+                                {['Ticket', 'Current holder', 'State', 'Resales', 'Listing price', 'Mint'].map((heading) => (
+                                  <th key={heading} scope="col" className="px-4 py-3 font-mono text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{heading}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {tickets
+                                .slice()
+                                .sort((left, right) => left.account.ticketNumber - right.account.ticketNumber)
+                                .map((ticket) => {
+                                  const mint = ticket.account.mint.toBase58();
+                                  const holder = ticketOwners[mint];
+                                  const listing = ticket.account.listingPrice;
+                                  return (
+                                    <tr key={mint} className="border-b border-dashed border-outline-variant/70 last:border-b-0 hover:bg-surface-container/60">
+                                      <td className="px-4 py-3 font-mono text-xs text-primary">#{ticket.account.ticketNumber.toLocaleString()}</td>
+                                      <td className="px-4 py-3 font-mono text-xs">
+                                        {holder ? (
+                                          <a href={`https://explorer.solana.com/address/${holder}?cluster=devnet`} target="_blank" rel="noreferrer" className="text-on-surface underline decoration-dashed underline-offset-4 transition-colors hover:text-primary">{shortAddress(holder)}</a>
+                                        ) : (
+                                          <span className="text-on-surface-variant">{ticketOwnersLoading ? 'Resolving…' : 'Unavailable'}</span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className={`inline-flex items-center gap-2 font-mono text-[9px] font-bold uppercase tracking-wider ${ticket.account.isUsed ? 'text-tertiary' : 'text-on-surface-variant'}`}>
+                                          <span className={`h-1.5 w-1.5 ${ticket.account.isUsed ? 'bg-tertiary' : 'bg-outline'}`} />
+                                          {ticket.account.isUsed ? 'Checked in' : 'Unused'}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 font-mono text-xs text-on-surface">{ticket.account.resaleCount.toLocaleString()}</td>
+                                      <td className="px-4 py-3 font-mono text-xs text-on-surface">{listing != null ? formatSol(BigInt(listing.toString())) : '—'}</td>
+                                      <td className="px-4 py-3 font-mono text-xs">
+                                        <a href={`https://explorer.solana.com/address/${mint}?cluster=devnet`} target="_blank" rel="noreferrer" className="text-primary underline decoration-dashed underline-offset-4 hover:opacity-80">{shortAddress(mint)}</a>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </section>
+                  </>
+                );
+              })()}
+            </div>
+            <footer className="flex flex-col gap-3 border-t border-dashed border-outline-variant bg-surface-container px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-on-surface-variant">Analytics sourced from Solana Devnet</span>
+              <button
+                type="button"
+                onClick={() => setRetry((value) => value + 1)}
+                className="inline-flex items-center justify-center gap-2 border border-outline-variant px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-wider text-on-surface transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                Refresh analytics
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">refresh</span>
+              </button>
+            </footer>
+          </section>
+        </div>
       )}
 
       {transactionOwner === owner && (tx.state.message || flowMessage) && (

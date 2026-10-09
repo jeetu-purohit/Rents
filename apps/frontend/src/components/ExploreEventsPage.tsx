@@ -40,36 +40,25 @@ function EventCard({ event, index }: { event: EventDto; index: number }) {
     <a
       href={`/events/${encodeURIComponent(event._id)}`}
       aria-label={`View details for ${event.name}`}
-      className="group relative block min-h-[500px] overflow-hidden border border-outline-variant bg-inverse-surface text-background shadow-marquee-soft transition-all duration-500 hover:-translate-y-2 hover:border-primary/60 hover:shadow-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      style={{ animationDelay: `${index * 70}ms` }}
+      className="event-card group relative block overflow-hidden border border-outline-variant/80 bg-inverse-surface text-background shadow-lg shadow-black/15 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-1.5 hover:border-primary/70 hover:shadow-xl hover:shadow-black/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background"
+      style={{ animationDelay: `${Math.min(index, 8) * 65}ms` }}
     >
-      {/* Ticket side notches */}
-      <span
-        className="absolute -left-2 top-[56%] z-20 h-5 w-5 rounded-full border border-outline-variant bg-background"
-        aria-hidden="true"
-      />
-      <span
-        className="absolute -right-2 top-[56%] z-20 h-5 w-5 rounded-full border border-outline-variant bg-background"
-        aria-hidden="true"
-      />
-
-      <article className="ticket-stub relative flex h-full flex-col">
-        {/* Image / poster */}
-        <div className="relative h-64 shrink-0 overflow-hidden border-b-2 border-dashed border-outline-variant bg-background">
+      <article className="ticket-stub flex h-full min-h-[430px] flex-col">
+        <div className="relative h-56 shrink-0 overflow-hidden border-b-2 border-dashed border-outline-variant bg-surface-container-high sm:h-60">
           <div
-            className="absolute inset-0 flex items-center justify-center bg-surface-container-high text-outline"
+            className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-surface-container-high to-background text-outline"
             aria-hidden="true"
           >
-            <span className="material-symbols-outlined text-6xl opacity-70">
+            <span className="material-symbols-outlined text-6xl opacity-60">
               confirmation_number
             </span>
           </div>
 
           {event.imageUrl && (
             <img
-              className="relative h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-[1.04] group-hover:grayscale-0"
+              className="relative h-full w-full object-cover grayscale transition-[filter,transform] duration-500 group-hover:scale-[1.04] group-hover:grayscale-0"
               src={event.imageUrl}
-              alt=""
+              alt={`${event.name} event artwork`}
               loading="lazy"
               onError={(image) => {
                 image.currentTarget.hidden = true;
@@ -78,81 +67,76 @@ function EventCard({ event, index }: { event: EventDto; index: number }) {
           )}
 
           <div
-            className="pointer-events-none absolute inset-0 opacity-80 mix-blend-multiply"
-            style={{
-              backgroundImage:
-                "linear-gradient(180deg, transparent 30%, rgba(0,0,0,.72) 100%), repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(255,255,255,.045) 4px)",
-            }}
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-black/25"
             aria-hidden="true"
           />
 
-          <div className="absolute left-4 top-4 flex items-center gap-2">
-            <span className="border border-background/30 bg-black/55 px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-background backdrop-blur-sm">
-              RENTS / EVENT
+          <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-3">
+            <span className="border border-white/25 bg-black/45 px-2.5 py-1.5 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-white/90 backdrop-blur-sm">
+              Event · {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className="border border-primary/40 bg-primary-container px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-on-primary-container shadow-marquee">
+              {capLabel(event.resaleCapBps)}
             </span>
           </div>
 
-          <span className="absolute right-4 top-4 border border-primary/40 bg-primary-container px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-on-primary-container shadow-marquee">
-            {capLabel(event.resaleCapBps)}
-          </span>
-
-          <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-4">
-            <div className="max-w-[75%]">
-              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-background/65">
-                Admit One · Digital Ticket
+          <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-4 text-white">
+            <div>
+              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/65">
+                RENTS · SOLANA TICKETING
               </span>
-              <div className="mt-2 h-px w-16 bg-primary" />
+              <div className="mt-2 h-px w-12 bg-primary" />
             </div>
-            <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-background/60">
-              {String(index + 1).padStart(2, "0")}
+            <span
+              className="material-symbols-outlined text-xl text-primary/90 transition-transform duration-300 group-hover:translate-x-1"
+              aria-hidden="true"
+            >
+              arrow_outward
             </span>
           </div>
         </div>
 
-        {/* Details */}
         <div className="flex flex-1 flex-col p-5 sm:p-6">
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 bg-primary" />
-              <span className="font-mono text-[9px] font-bold uppercase tracking-[0.19em] text-primary">
-                Verified listing
-              </span>
-            </div>
-
-            <h2 className="mb-5 line-clamp-2 font-display text-3xl uppercase leading-[0.92] tracking-tight text-background sm:text-4xl">
-              {event.name}
-            </h2>
-
-            <div className="space-y-3 border-y border-dashed border-background/15 py-4">
-              <p className="flex items-start gap-2.5 font-section-label text-section-label uppercase text-background/75">
-                <span className="material-symbols-outlined mt-0.5 text-[15px] text-primary" aria-hidden="true">
-                  calendar_month
-                </span>
-                <span>{formatEventDate(event.date)}</span>
-              </p>
-              <p className="flex min-w-0 items-start gap-2.5 font-section-label text-section-label uppercase text-background/75">
-                <span className="material-symbols-outlined mt-0.5 text-[15px] text-primary" aria-hidden="true">
-                  location_on
-                </span>
-                <span className="line-clamp-1">{event.venue}</span>
-              </p>
-            </div>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 bg-primary" aria-hidden="true" />
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-on-background/55">
+              Event details
+            </span>
           </div>
 
-          <div className="mt-auto flex items-end justify-between gap-4 pt-6">
-            <div>
-              <p className="font-section-label text-[9px] uppercase tracking-[0.14em] text-background/45">
+          <h2 className="line-clamp-2 min-h-[3.7rem] font-display text-3xl uppercase leading-[0.95] tracking-tight text-background sm:text-[2rem]">
+            {event.name}
+          </h2>
+
+          <div className="mt-4 space-y-3 border-y border-dashed border-background/15 py-4">
+            <p className="flex items-start gap-2.5 font-section-label text-[10px] uppercase leading-relaxed tracking-[0.1em] text-background/70">
+              <span className="material-symbols-outlined mt-0.5 text-[15px] text-primary" aria-hidden="true">
+                calendar_month
+              </span>
+              <span>{formatEventDate(event.date)}</span>
+            </p>
+            <p className="flex min-w-0 items-start gap-2.5 font-section-label text-[10px] uppercase leading-relaxed tracking-[0.1em] text-background/70">
+              <span className="material-symbols-outlined mt-0.5 text-[15px] text-primary" aria-hidden="true">
+                location_on
+              </span>
+              <span className="line-clamp-1">{event.venue}</span>
+            </p>
+          </div>
+
+          <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+            <div className="min-w-0">
+              <p className="font-section-label text-[9px] uppercase tracking-[0.15em] text-background/50">
                 Starting from
               </p>
-              <p className="mt-1 font-mono text-sm font-bold text-background sm:text-base">
+              <p className="mt-1 truncate font-mono text-sm font-bold text-background sm:text-base">
                 {formatPrice(event.basePriceLamports)}
               </p>
             </div>
 
-            <span className="flex shrink-0 items-center gap-2 bg-background px-3.5 py-2 font-section-label text-[10px] font-bold uppercase tracking-wider text-inverse-surface transition-all duration-300 group-hover:bg-primary group-hover:text-on-primary-container">
-              View
+            <span className="flex shrink-0 items-center gap-2 bg-background px-3.5 py-2.5 font-section-label text-[10px] font-bold uppercase tracking-[0.12em] text-inverse-surface transition-colors duration-200 group-hover:bg-primary group-hover:text-on-primary-container">
+              Explore
               <span
-                className="material-symbols-outlined text-sm transition-transform duration-300 group-hover:translate-x-1"
+                className="material-symbols-outlined text-sm transition-transform duration-200 group-hover:translate-x-0.5"
                 aria-hidden="true"
               >
                 arrow_forward
@@ -167,13 +151,13 @@ function EventCard({ event, index }: { event: EventDto; index: number }) {
 
 function EventSkeleton() {
   return (
-    <div className="overflow-hidden border border-outline-variant bg-inverse-surface/10" aria-hidden="true">
-      <div className="h-64 animate-pulse border-b-2 border-dashed border-outline-variant bg-surface-container-high" />
-      <div className="flex min-h-[236px] flex-col gap-4 p-5">
-        <div className="h-3 w-28 animate-pulse bg-surface-container-high" />
-        <div className="h-10 w-4/5 animate-pulse bg-surface-container-high" />
-        <div className="h-8 w-full animate-pulse bg-surface-container-high" />
-        <div className="mt-auto h-9 w-1/2 animate-pulse bg-surface-container-high" />
+    <div className="overflow-hidden border border-outline-variant/70 bg-inverse-surface/10" aria-hidden="true">
+      <div className="h-56 animate-pulse border-b-2 border-dashed border-outline-variant bg-surface-container-high sm:h-60" />
+      <div className="flex min-h-[230px] flex-col gap-4 p-5 sm:p-6">
+        <div className="h-2.5 w-24 animate-pulse bg-surface-container-high" />
+        <div className="h-9 w-4/5 animate-pulse bg-surface-container-high" />
+        <div className="h-14 w-full animate-pulse bg-surface-container-high" />
+        <div className="mt-auto h-8 w-1/2 animate-pulse bg-surface-container-high" />
       </div>
     </div>
   );
@@ -207,13 +191,23 @@ export function ExploreEventsPage() {
   const eventCount = state.status === "success" ? state.events.length : 0;
 
   return (
-    <section className="relative mx-auto flex w-full max-w-[1440px] flex-1 overflow-hidden px-4 pb-20 sm:px-6 lg:px-8">
-      {/* Background registration grid */}
+    <section className="relative mx-auto w-full max-w-[1440px] flex-1 overflow-hidden pb-20">
+      <style>{`
+        @keyframes rents-event-enter {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .event-card { animation: rents-event-enter 520ms cubic-bezier(.2,.75,.25,1) both; }
+        @media (prefers-reduced-motion: reduce) {
+          .event-card { animation: none; transition-duration: 0.01ms; }
+        }
+      `}</style>
+
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
-        <div className="absolute -left-40 top-10 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -right-40 top-[28rem] h-[34rem] w-[34rem] rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -left-48 top-8 h-96 w-96 rounded-full bg-primary/8 blur-3xl" />
+        <div className="absolute -right-48 top-[32rem] h-[34rem] w-[34rem] rounded-full bg-primary/7 blur-3xl" />
         <div
-          className="absolute inset-0 opacity-[0.035]"
+          className="absolute inset-0 opacity-[0.025]"
           style={{
             backgroundImage:
               "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
@@ -222,167 +216,181 @@ export function ExploreEventsPage() {
         />
       </div>
 
-      <div className="w-full">
-        <header className="relative mb-10 overflow-hidden border border-outline-variant bg-surface-container shadow-marquee-soft">
-          <div className="absolute inset-y-0 left-0 w-1 bg-primary" aria-hidden="true" />
+      <header className="relative mb-8 overflow-hidden border border-outline-variant/80 bg-surface-container shadow-marquee-soft sm:mb-10">
+        <div className="absolute inset-y-0 left-0 w-1 bg-primary" aria-hidden="true" />
 
-          <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end lg:p-10">
-            <div>
-              <div className="mb-5 flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-2 border border-primary/40 bg-primary/10 px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
-                  <span className="h-1.5 w-1.5 bg-primary" />
-                  Public manifest
-                </span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-on-surface-variant">
-                  Solana / RENTS
-                </span>
-              </div>
-
-              <p className="mb-2 font-section-label text-[10px] font-bold uppercase tracking-[0.23em] text-primary">
-                Find the room. Keep the ticket.
-              </p>
-
-              <h1 className="font-display text-5xl uppercase leading-[0.86] tracking-tight text-on-surface sm:text-7xl lg:text-[7rem]">
-                Upcoming
-                <br />
-                <span className="text-primary">Events</span>
-              </h1>
-
-              <p className="mt-5 max-w-2xl font-mono text-[10px] uppercase leading-relaxed tracking-[0.07em] text-on-surface-variant sm:text-xs">
-                Discover and secure authentic tickets on Solana — with transparent pricing,
-                verifiable ownership, and resale rules written into the ticket.
-              </p>
-            </div>
-
-            <div className="grid w-full max-w-xs grid-cols-2 border border-outline-variant bg-background/50 sm:max-w-sm">
-              <div className="border-r border-dashed border-outline-variant p-4">
-                <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
-                  Manifest
-                </p>
-                <p className="mt-1 font-display text-4xl text-on-surface">
-                  {state.status === "success" ? String(eventCount).padStart(2, "0") : "—"}
-                </p>
-                <p className="mt-1 font-mono text-[8px] uppercase tracking-wider text-primary">
-                  Listed events
-                </p>
-              </div>
-              <div className="p-4">
-                <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
-                  Network
-                </p>
-                <p className="mt-1 font-display text-4xl text-on-surface">01</p>
-                <p className="mt-1 font-mono text-[8px] uppercase tracking-wider text-primary">
-                  Solana
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 border-t border-dashed border-outline-variant sm:grid-cols-4">
-            {[
-              ["01", "DISCOVER", "Find your next room"],
-              ["02", "VERIFY", "Know what you own"],
-              ["03", "COLLECT", "Keep your ticket"],
-              ["04", "ATTEND", "Show up"],
-            ].map(([number, title, caption]) => (
-              <div
-                key={number}
-                className="border-r border-dashed border-outline-variant px-4 py-3 last:border-r-0 sm:px-5"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[9px] text-primary">{number}</span>
-                  <span className="font-section-label text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface">
-                    {title}
-                  </span>
-                </div>
-                <p className="mt-1 hidden font-mono text-[8px] uppercase text-on-surface-variant sm:block">
-                  {caption}
-                </p>
-              </div>
-            ))}
-          </div>
-        </header>
-
-        {state.status === "loading" && (
-          <div
-            role="status"
-            aria-label="Loading events"
-            className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
-            {Array.from({ length: 8 }, (_, index) => (
-              <EventSkeleton key={index} />
-            ))}
-          </div>
-        )}
-
-        {state.status === "error" && (
-          <div
-            role="alert"
-            className="relative overflow-hidden border border-dashed border-outline-variant bg-inverse-surface p-8 text-center text-background sm:p-14"
-          >
-            <div className="absolute inset-x-0 top-0 h-1 bg-primary" aria-hidden="true" />
-            <div className="mx-auto flex max-w-2xl flex-col items-center">
-              <div className="flex h-16 w-16 items-center justify-center border border-primary/30 bg-primary/10">
-                <span
-                  className="material-symbols-outlined text-3xl text-primary"
-                  aria-hidden="true"
-                >
-                  cloud_off
-                </span>
-              </div>
-              <p className="mt-5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
-                Manifest temporarily closed
-              </p>
-              <h2 className="mt-2 font-display text-4xl uppercase leading-none sm:text-5xl">
-                Events are unavailable
-              </h2>
-              <p className="mt-4 max-w-lg font-body text-body-md text-background/70">
-                {state.message}
-              </p>
-              <button
-                type="button"
-                onClick={() => setRetry((count) => count + 1)}
-                className="mt-7 inline-flex items-center gap-2 bg-background px-5 py-3 font-section-label text-section-label uppercase text-inverse-surface transition-transform hover:-translate-y-0.5 hover:bg-surface-variant"
-              >
-                Try again
-                <span className="material-symbols-outlined text-sm" aria-hidden="true">refresh</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {state.status === "success" &&
-          (state.events.length === 0 ? (
-            <div className="relative overflow-hidden border border-dashed border-outline-variant bg-surface-container p-10 text-center sm:p-16">
-              <div className="absolute inset-x-0 top-0 flex justify-center gap-2" aria-hidden="true">
-                <span className="h-1 w-8 bg-primary" />
-                <span className="h-1 w-2 bg-outline-variant" />
-                <span className="h-1 w-2 bg-outline-variant" />
-              </div>
-              <span
-                className="material-symbols-outlined text-6xl text-outline"
-                aria-hidden="true"
-              >
-                confirmation_number
+        <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:p-10">
+          <div>
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-2 border border-primary/35 bg-primary/10 px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
+                <span className="h-1.5 w-1.5 bg-primary" aria-hidden="true" />
+                Explore the calendar
               </span>
-              <p className="mt-5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
-                Manifest empty
+              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-on-surface-variant">
+                RENTS / SOLANA
+              </span>
+            </div>
+
+            <p className="mb-2 font-section-label text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
+              Find your next room
+            </p>
+            <h1 className="font-display text-[clamp(3.5rem,9vw,7.5rem)] uppercase leading-[0.82] tracking-tight text-on-surface">
+              Upcoming
+              <br />
+              <span className="text-primary">Events</span>
+            </h1>
+            <p className="mt-5 max-w-2xl font-mono text-[10px] uppercase leading-relaxed tracking-[0.07em] text-on-surface-variant sm:text-xs">
+              Discover events and secure your ticket with transparent pricing and resale terms.
+            </p>
+          </div>
+
+          <div className="grid w-full max-w-sm grid-cols-2 border border-outline-variant/80 bg-background/40 lg:w-72">
+            <div className="border-r border-dashed border-outline-variant p-4 sm:p-5">
+              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">
+                On the calendar
               </p>
-              <h2 className="mt-2 font-display text-4xl uppercase text-on-surface sm:text-5xl">
-                No events on the manifest
-              </h2>
-              <p className="mx-auto mt-3 max-w-lg font-body text-body-md text-on-surface-variant">
-                There are no events listed right now. Check back soon for the next opening.
+              <p className="mt-1 font-display text-5xl leading-none text-on-surface">
+                {state.status === "success" ? String(eventCount).padStart(2, "0") : "—"}
+              </p>
+              <p className="mt-2 font-mono text-[8px] uppercase tracking-[0.12em] text-primary">
+                {state.status === "loading" ? "Loading" : eventCount === 1 ? "Event" : "Events"}
               </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {state.events.map((event, index) => (
-                <EventCard key={event._id} event={event} index={index} />
-              ))}
+            <div className="p-4 sm:p-5">
+              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-on-surface-variant">
+                Ticket rules
+              </p>
+              <span className="material-symbols-outlined mt-1 block text-4xl leading-none text-primary" aria-hidden="true">
+                verified_user
+              </span>
+              <p className="mt-2 font-mono text-[8px] uppercase tracking-[0.12em] text-on-surface-variant">
+                Program enforced
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 border-t border-dashed border-outline-variant sm:grid-cols-4">
+          {[
+            ["01", "DISCOVER", "Browse events"],
+            ["02", "CHECK TERMS", "See resale limits"],
+            ["03", "COLLECT", "Hold your ticket"],
+            ["04", "SHOW UP", "Scan at entry"],
+          ].map(([number, title, caption]) => (
+            <div
+              key={number}
+              className="border-r border-dashed border-outline-variant px-4 py-3 last:border-r-0 sm:px-5"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[9px] text-primary">{number}</span>
+                <span className="font-section-label text-[9px] font-bold uppercase tracking-[0.14em] text-on-surface">
+                  {title}
+                </span>
+              </div>
+              <p className="mt-1 hidden font-mono text-[8px] uppercase tracking-wide text-on-surface-variant sm:block">
+                {caption}
+              </p>
             </div>
           ))}
+        </div>
+      </header>
+
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-dashed border-outline-variant/80 pb-4">
+        <div>
+          <p className="font-section-label text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
+            Browse the manifest
+          </p>
+          <h2 className="mt-1 font-display text-3xl uppercase leading-none text-on-surface sm:text-4xl">
+            Find an event
+          </h2>
+        </div>
+        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-on-surface-variant">
+          {state.status === "success"
+            ? `${eventCount} ${eventCount === 1 ? "event" : "events"} listed`
+            : state.status === "loading"
+              ? "Updating listings"
+              : "Listings unavailable"}
+        </span>
       </div>
+
+      {state.status === "loading" && (
+        <div
+          role="status"
+          aria-label="Loading events"
+          className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        >
+          {Array.from({ length: 8 }, (_, index) => (
+            <EventSkeleton key={index} />
+          ))}
+        </div>
+      )}
+
+      {state.status === "error" && (
+        <div
+          role="alert"
+          className="relative overflow-hidden border border-dashed border-outline-variant bg-inverse-surface p-8 text-center text-background sm:p-14"
+        >
+          <div className="absolute inset-x-0 top-0 h-1 bg-primary" aria-hidden="true" />
+          <div className="mx-auto flex max-w-2xl flex-col items-center">
+            <div className="flex h-16 w-16 items-center justify-center border border-primary/30 bg-primary/10">
+              <span className="material-symbols-outlined text-3xl text-primary" aria-hidden="true">
+                cloud_off
+              </span>
+            </div>
+            <p className="mt-5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
+              Manifest temporarily unavailable
+            </p>
+            <h2 className="mt-2 font-display text-4xl uppercase leading-none sm:text-5xl">
+              Events are unavailable
+            </h2>
+            <p className="mt-4 max-w-lg font-body text-body-md text-background/70">
+              {state.message}
+            </p>
+            <button
+              type="button"
+              onClick={() => setRetry((count) => count + 1)}
+              className="mt-7 inline-flex items-center gap-2 bg-background px-5 py-3 font-section-label text-section-label uppercase text-inverse-surface transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-surface-variant focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-inverse-surface"
+            >
+              Try again
+              <span className="material-symbols-outlined text-sm" aria-hidden="true">
+                refresh
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {state.status === "success" &&
+        (state.events.length === 0 ? (
+          <div className="relative overflow-hidden border border-dashed border-outline-variant bg-surface-container p-10 text-center sm:p-16">
+            <div className="absolute inset-x-0 top-0 flex justify-center gap-2" aria-hidden="true">
+              <span className="h-1 w-8 bg-primary" />
+              <span className="h-1 w-2 bg-outline-variant" />
+              <span className="h-1 w-2 bg-outline-variant" />
+            </div>
+            <span
+              className="material-symbols-outlined text-6xl text-outline"
+              aria-hidden="true"
+            >
+              confirmation_number
+            </span>
+            <p className="mt-5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-primary">
+              The calendar is clear
+            </p>
+            <h2 className="mt-2 font-display text-4xl uppercase text-on-surface sm:text-5xl">
+              No events listed yet
+            </h2>
+            <p className="mx-auto mt-3 max-w-lg font-body text-body-md text-on-surface-variant">
+              There are no events listed right now. Check back soon for the next opening.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {state.events.map((event, index) => (
+              <EventCard key={event._id} event={event} index={index} />
+            ))}
+          </div>
+        ))}
     </section>
   );
 }

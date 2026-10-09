@@ -53,13 +53,13 @@ export async function getTicketMetadata(mintValue: string): Promise<TicketMetada
   const event = await Event.findOne({ eventPda: ticket.event.toBase58() });
   if (!event) throw new MetadataError("Event metadata is not available for this Ticket", 404);
   const image = event.imageUrl?.trim();
-  if (!image) throw new MetadataError("Event metadata is missing an image URL", 422);
+  // if (!image) throw new MetadataError("Event metadata is missing an image URL", 422);
 
   return {
     name: `${event.name} #${ticket.ticketNumber}`,
     symbol: "RENTS",
     description: event.description,
-    image,
+    ...(image ? { image } : {}),
     attributes: [
       { trait_type: "event", value: event.name },
       { trait_type: "venue", value: event.venue },
