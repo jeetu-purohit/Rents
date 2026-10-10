@@ -16,7 +16,9 @@ const PORT = process.env.PORT || 4000;
 const frontendOrigin = process.env.FRONTEND_ORIGIN?.trim() || "http://localhost:5173";
 
 app.use(cors({
-  origin: (origin, callback) => callback(null, !origin || origin === frontendOrigin),
+  origin: [
+    "https://rents-chi.vercel.app",
+  ],
   credentials: true,
 }));
 app.use(express.json());
