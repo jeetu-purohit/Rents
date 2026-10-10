@@ -7,7 +7,7 @@ export interface TicketMetadata {
   name: string;
   symbol: "RENTS";
   description: string;
-  image: string;
+  image?: string;
   attributes: Array<{ trait_type: string; value: string }>;
 }
 
