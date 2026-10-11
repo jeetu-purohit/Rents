@@ -84,25 +84,15 @@ function AppShell({
         >
           {/* Brand */}
           <AppLink
-            href="/"
-            className="group flex shrink-0 items-center gap-3"
-            aria-label="RENTS home"
-          >
-            <span
-              aria-hidden="true"
-              className="flex h-8 w-8 items-center justify-center border border-primary bg-primary text-background transition-transform duration-300 ease-out group-hover:rotate-3 group-hover:scale-105"
-            >
-              <span className="font-display text-sm font-bold">R</span>
-            </span>
-
-            <span className="flex flex-col leading-none">
-              <span className="font-display text-headline-lg tracking-[0.18em] text-primary transition-opacity duration-200 group-hover:opacity-80">
-                RENTS
-              </span>
-              <span className="mt-1 hidden font-mono text-[9px] uppercase tracking-[0.22em] text-on-surface-variant sm:block">
-                Solana Ticketing
-              </span>
-            </span>
+                      href="/"
+                      className="group flex shrink-0 items-center"
+                      aria-label="RENTS home"
+                    >
+                      <img
+                        src="/rents-logo.png"
+                        alt="RENTS — Solana Ticketing"
+                        className="h-10 w-auto object-contain transition-opacity duration-200 group-hover:opacity-80 sm:h-12"
+                      />
           </AppLink>
 
           {/* Navigation */}
