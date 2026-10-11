@@ -9,7 +9,7 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-const rpcUrl = requiredEnv("VITE_SOLANA_RPC_URL");
+const rpcUrl = requiredEnv("SOLANA_RPC_URL");
 const programIdValue = requiredEnv("PROGRAM_ID");
 
 export const programId = new PublicKey(programIdValue);
