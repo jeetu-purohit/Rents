@@ -7,7 +7,7 @@ import {
   buildResellTicketTransaction as buildResellTicketTx,
   buildCheckInTicketTransaction as buildCheckInTicketTx,
   TransactionInputError,
-} from "../services/solanaTx.service";
+} from "../services/solanaTx.service.ts";
 
 type RequestBody = Record<string, unknown>;
 

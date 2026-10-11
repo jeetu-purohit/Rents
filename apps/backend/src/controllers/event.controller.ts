@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import type { CreateEventRequest } from "shared";
-import { Event } from "../models/Event.model";
-import { ApiError } from "../middleware/requestValidation";
+import { Event } from "../models/Event.model.ts";
+import { ApiError } from "../middleware/requestValidation.ts";
 
 export async function createEvent(
   req: Request<Record<string, string>, unknown, CreateEventRequest>,

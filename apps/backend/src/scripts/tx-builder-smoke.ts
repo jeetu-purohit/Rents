@@ -1,9 +1,9 @@
 import "dotenv/config";
 import mongoose from "mongoose";
 import { Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
-import { connection, program, programId } from "../config/solana";
-import { Event } from "../models/Event.model";
-import { Ticket } from "../models/Ticket.model";
+import { connection, program, programId } from "../config/solana.ts";
+import { Event } from "../models/Event.model.ts";
+import { Ticket } from "../models/Ticket.model.ts";
 
 interface UnsignedTransactionResponse {
   transaction: string;

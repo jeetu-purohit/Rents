@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { verifyTicket } from "../controllers/checkin.controller";
+import { verifyTicket } from "../controllers/checkin.controller.ts";
 import type { RequestHandler } from "express";
-import { publicKeyString, requestObject, RequestValidationError } from "../middleware/requestValidation";
+import { publicKeyString, requestObject, RequestValidationError } from "../middleware/requestValidation.ts";
 
 const router = Router();
 

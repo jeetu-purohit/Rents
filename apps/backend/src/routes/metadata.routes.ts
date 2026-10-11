@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { getTicketMetadataController } from "../controllers/metadata.controller";
-import { publicKeyString, validateParams } from "../middleware/requestValidation";
+import { getTicketMetadataController } from "../controllers/metadata.controller.ts";
+import { publicKeyString, validateParams } from "../middleware/requestValidation.ts";
 
 const router = Router();
 

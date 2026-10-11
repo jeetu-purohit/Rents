@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import { Ticket } from "../models/Ticket.model";
-import { syncTicket } from "../services/indexer.service";
-import { ApiError } from "../middleware/requestValidation";
+import { Ticket } from "../models/Ticket.model.ts";
+import { syncTicket } from "../services/indexer.service.ts";
+import { ApiError } from "../middleware/requestValidation.ts";
 
 export async function getTicketsByOwner(req: Request, res: Response, next: NextFunction) {
   try {

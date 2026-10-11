@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { getPlatformConfig } from "../services/platform.service";
+import { getPlatformConfig } from "../services/platform.service.ts";
 
 export async function getPlatformConfigController(_req: Request, res: Response, next: NextFunction) {
   try {

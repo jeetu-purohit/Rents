@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
-import { program, programId } from "../config/solana";
-import { Event } from "../models/Event.model";
-import { Ticket } from "../models/Ticket.model";
+import { program, programId } from "../config/solana.ts";
+import { Event } from "../models/Event.model.ts";
+import { Ticket } from "../models/Ticket.model.ts";
 
 export interface TicketMetadata {
   name: string;

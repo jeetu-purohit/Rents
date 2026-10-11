@@ -5,8 +5,8 @@ import {
   getEventById,
   getEventsByOrganizer,
   updateEvent,
-} from "../controllers/event.controller";
-import { integer, mongoId, optionalString, publicKeyString, requiredString, u64String, validDateString, validateBody, validateParams } from "../middleware/requestValidation";
+} from "../controllers/event.controller.ts";
+import { integer, mongoId, optionalString, publicKeyString, requiredString, u64String, validDateString, validateBody, validateParams } from "../middleware/requestValidation.ts";
 
 const router = Router();
 

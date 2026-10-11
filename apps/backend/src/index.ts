@@ -1,15 +1,15 @@
 import express from "express";
 import cors from "cors";
-import { connectDB } from "./config/db";
+import { connectDB } from "./config/db.ts";
 import eventRoutes from "./routes/events.routes.ts";
-import ticketRoutes from "./routes/ticket.routes";
-import checkinRoutes from "./routes/checkin.routes";
-import txRoutes from "./routes/tx.routes";
-import metadataRoutes from "./routes/metadata.routes";
-import platformRoutes from "./routes/platform.routes";
-import { errorHandler } from "./middleware/errorHandler";
-import { ApiError, rejectUnsupportedQueryParams } from "./middleware/requestValidation";
-import { startIndexer } from "./services/indexer.service";
+import ticketRoutes from "./routes/ticket.routes.ts";
+import checkinRoutes from "./routes/checkin.routes.ts";
+import txRoutes from "./routes/tx.routes.ts";
+import metadataRoutes from "./routes/metadata.routes.ts";
+import platformRoutes from "./routes/platform.routes.ts";
+import { errorHandler } from "./middleware/errorHandler.ts";
+import { ApiError, rejectUnsupportedQueryParams } from "./middleware/requestValidation.ts";
+import { startIndexer } from "./services/indexer.service.ts";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
