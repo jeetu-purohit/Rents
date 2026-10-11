@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { connectDB } from "./config/db.ts";
+import { connectDB } from "./config/db.js";
 import eventRoutes from "./routes/events.routes.ts";
 import ticketRoutes from "./routes/ticket.routes.ts";
 import checkinRoutes from "./routes/checkin.routes.ts";
