@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { ApiError, RequestValidationError } from "./requestValidation.ts";
+import { ApiError, RequestValidationError } from "./requestValidation.js";
 
 function property(value: unknown, key: string): unknown {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>)[key] : undefined;

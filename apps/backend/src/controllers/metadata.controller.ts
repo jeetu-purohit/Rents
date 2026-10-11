@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { getTicketMetadata } from "../services/metadata.service.ts";
+import { getTicketMetadata } from "../services/metadata.service.js";
 
 export async function getTicketMetadataController(req: Request, res: Response, next: NextFunction) {
   try {

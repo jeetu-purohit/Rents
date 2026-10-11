@@ -1,6 +1,6 @@
 import { Program, type Idl, type Provider } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";
-import sharedIdlJson from "shared/idl/rents_ticketing.json";
+import sharedIdlJson from "shared/idl/rents_ticketing.json" with { type: "json" };
 import type { RentsTicketing } from "shared";
 
 function requiredEnv(name: string): string {

@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { program, programId } from "../config/solana.ts";
+import { program, programId } from "../config/solana.js";
 
 export interface PlatformConfigResponse {
   platformFeeBps: number;

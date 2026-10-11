@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { verifyCheckIn } from "../services/checkinVerification.service.ts";
+import { verifyCheckIn } from "../services/checkinVerification.service.js";
 
 export async function verifyTicket(req: Request, res: Response, next: NextFunction) {
   try {

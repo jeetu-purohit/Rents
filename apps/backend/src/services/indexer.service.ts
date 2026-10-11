@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
-import sharedIdlJson from "shared/idl/rents_ticketing.json";
-import { connection, program, programId } from "../config/solana.ts";
-import { Ticket } from "../models/Ticket.model.ts";
+import sharedIdlJson from "shared/idl/rents_ticketing.json" with { type: "json" };
+import { connection, program, programId } from "../config/solana.js";
+import { Ticket } from "../models/Ticket.model.js";
 
 const TICKET_SEED = Buffer.from("ticket");
 const EVENT_SEED = Buffer.from("event");

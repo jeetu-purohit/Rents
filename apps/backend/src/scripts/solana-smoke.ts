@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { connection, program } from "../config/solana.ts";
+import { connection, program } from "../config/solana.js";
 
 const accountInfo = await connection.getAccountInfo(program.programId);
 if (!accountInfo?.executable) {

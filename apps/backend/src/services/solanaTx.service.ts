@@ -5,8 +5,8 @@ import {
   Transaction,
   type TransactionInstruction,
 } from "@solana/web3.js";
-import sharedIdlJson from "shared/idl/rents_ticketing.json";
-import { connection, program, programId } from "../config/solana.ts";
+import sharedIdlJson from "shared/idl/rents_ticketing.json" with { type: "json" };
+import { connection, program, programId } from "../config/solana.js";
 
 const U64_MAX = new BN("18446744073709551615", 10);
 const U32_MAX = 0xffff_ffff;

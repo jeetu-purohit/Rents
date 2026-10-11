@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getPlatformConfigController } from "../controllers/platform.controller.ts";
+import { getPlatformConfigController } from "../controllers/platform.controller.js";
 
 const router = Router();
 

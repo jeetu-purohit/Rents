@@ -5,8 +5,8 @@ import {
   getTicketByMint,
   getActiveListings,
   syncTicketByMint,
-} from "../controllers/ticket.controller.ts";
-import { publicKeyString, validateParams } from "../middleware/requestValidation.ts";
+} from "../controllers/ticket.controller.js";
+import { publicKeyString, validateParams } from "../middleware/requestValidation.js";
 
 const router = Router();
 

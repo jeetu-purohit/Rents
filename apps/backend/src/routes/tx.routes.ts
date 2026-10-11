@@ -6,8 +6,8 @@ import {
   buildCancelListingTransaction,
   buildResellTicketTransaction,
   buildCheckInTicketTransaction,
-} from "../controllers/tx.controller.ts";
-import { integer, publicKeyString, requiredString, u64String, validateBody } from "../middleware/requestValidation.ts";
+} from "../controllers/tx.controller.js";
+import { integer, publicKeyString, requiredString, u64String, validateBody } from "../middleware/requestValidation.js";
 
 const router = Router();
 
