@@ -13,12 +13,21 @@ import { startIndexer } from "./services/indexer.service";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const frontendOrigin = process.env.FRONTEND_ORIGIN?.trim() || "http://localhost:5173";
+const frontendOrigin = process.env.FRONTEND_ORIGIN?.trim().replace(/\/+$/, "");
 
-app.use(cors({
-  origin: [
-    "https://rents-chi.vercel.app",
-  ],
+if (!frontendOrigin) {
+  throw new Error("FRONTEND_ORIGIN must be configured");
+}
+
+app.use(
+  cors({
+    origin: frontendOrigin,
+    credentials: true,
+  })
+);
+
+app.options(/.*/, cors({
+  origin: frontendOrigin,
   credentials: true,
 }));
 app.use(express.json());
